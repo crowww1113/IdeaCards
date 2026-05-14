@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -18,15 +19,22 @@ import com.example.ideacards.data.db.AppDatabase;
 import com.example.ideacards.data.dao.NoteDao;
 import com.example.ideacards.data.entity.NoteEntity;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.json.JSONObject;
 
 /**
  * 主界面：管理笔记列表的展示、新增与数据库交互。
  */
 public class MainActivity extends AppCompatActivity {
 
+    private TextView tvQuote;
     private RecyclerView rvNotes;
     private EditText etInput;
     private Button btnSend;
@@ -54,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         noteDao = AppDatabase.getInstance(this).noteDao();
 
         // 绑定视图
+        tvQuote = findViewById(R.id.tv_quote);
         rvNotes = findViewById(R.id.rv_notes);
         etInput = findViewById(R.id.et_input);
         btnSend = findViewById(R.id.btn_send);
@@ -71,6 +80,9 @@ public class MainActivity extends AppCompatActivity {
 
         // 首次加载：从数据库读取历史笔记
         loadNotes();
+
+        // 请求网络获取每日一言，展示在顶部 TextView
+        fetchDailyQuote();
     }
 
     /**
@@ -121,6 +133,67 @@ public class MainActivity extends AppCompatActivity {
                 }
                 adapter.setData(notes);
             });
+        });
+    }
+
+    /**
+     * 在子线程通过 HttpURLConnection 请求一言 API，
+     * 解析返回的 JSON 中的 hitokoto 和 from 字段，
+     * 拼接为 "句子" —— 来源 格式显示在顶部 tv_quote 中。
+     */
+    private void fetchDailyQuote() {
+        executor.execute(() -> {
+            HttpURLConnection connection = null;
+            try {
+                // 请求一言 API，参数 c=d/i/k/e 混合获取不同类型句子
+                URL url = new URL("https://v1.hitokoto.cn/?c=d&c=i&c=k&c=e");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(8000);  // 连接超时 8 秒
+                connection.setReadTimeout(8000);     // 读取超时 8 秒
+
+                // 读取响应流
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(connection.getInputStream(), "UTF-8"));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                // 解析 JSON
+                JSONObject json = new JSONObject(response.toString());
+                String hitokoto = json.optString("hitokoto", "");
+                String from = json.optString("from", "");
+
+                // 拼接展示文本
+                StringBuilder quoteText = new StringBuilder(hitokoto);
+                if (!from.isEmpty()) {
+                    quoteText.append(" —— ").append(from);
+                }
+
+                // 回到主线程设置 TextView
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    tvQuote.setText(quoteText.toString());
+                });
+
+            } catch (Exception e) {
+                // 网络异常或解析失败时显示默认文案
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    tvQuote.setText("今日灵感获取失败");
+                });
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
         });
     }
 
