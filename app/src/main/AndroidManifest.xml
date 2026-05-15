@@ -5,6 +5,9 @@
     <!-- 网络权限：用于请求一言 API 获取每日名言 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 通知权限：Android 13+ 发送通知需要运行时申请 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
