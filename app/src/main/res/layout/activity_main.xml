@@ -8,16 +8,34 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <!-- 顶部名言展示区，稍后绑定随机名言 -->
-    <TextView
-        android:id="@+id/tv_quote"
+    <!-- 顶部栏：名言展示区 + 归档入口按钮 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="12dp"
-        android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
-        android:text="" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp">
+
+        <!-- 每日一言展示区，weight=1 撑满左侧空间 -->
+        <TextView
+            android:id="@+id/tv_quote"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:textSize="16sp"
+            android:textColor="@android:color/darker_gray"
+            android:text="" />
+
+        <!-- 归档入口按钮，点击跳转到 ArchiveActivity -->
+        <Button
+            android:id="@+id/btn_archive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="归档" />
+
+    </LinearLayout>
 
     <!-- 中间笔记列表，weight=1 撑满剩余空间 -->
     <androidx.recyclerview.widget.RecyclerView

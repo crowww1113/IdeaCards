@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 归档页面布局：顶部操作栏 + 笔记列表 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".ArchiveActivity">
+
+    <!-- 顶部操作栏：返回按钮 + 提醒按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <!-- 返回按钮，点击结束当前页回到主界面 -->
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
+            android:src="@android:drawable/ic_menu_revert"
+            android:scaleType="centerInside" />
+
+        <!-- 占位弹簧，把提醒按钮推到右侧 -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- 提醒我整理按钮，暂只预留 id，后续实现通知功能 -->
+        <Button
+            android:id="@+id/btn_remind"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="提醒我整理" />
+
+    </LinearLayout>
+
+    <!-- 分割线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray" />
+
+    <!-- 笔记列表，weight=1 撑满剩余空间 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_archive_notes"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:clipToPadding="false" />
+
+</LinearLayout>

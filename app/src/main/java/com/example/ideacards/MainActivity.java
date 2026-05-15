@@ -1,5 +1,6 @@
 package com.example.ideacards;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView rvNotes;
     private EditText etInput;
     private Button btnSend;
+    private Button btnArchive;
 
     private BubbleAdapter adapter;
     private NoteDao noteDao;
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
         rvNotes = findViewById(R.id.rv_notes);
         etInput = findViewById(R.id.et_input);
         btnSend = findViewById(R.id.btn_send);
+        btnArchive = findViewById(R.id.btn_archive);
 
         // 设置 RecyclerView：纵向列表，新条目从底部堆叠（聊天气泡风格）
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -77,6 +80,11 @@ public class MainActivity extends AppCompatActivity {
 
         // 发送按钮点击：校验输入 -> 子线程写入数据库 -> 刷新列表
         btnSend.setOnClickListener(v -> onSendClicked());
+
+        // 归档按钮点击：跳转到归档列表页
+        btnArchive.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, ArchiveActivity.class));
+        });
 
         // 首次加载：从数据库读取历史笔记
         loadNotes();
