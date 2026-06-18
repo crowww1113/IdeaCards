@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.widget.ImageButton;
@@ -16,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -26,7 +28,13 @@ import com.example.ideacards.data.db.AppDatabase;
 import com.example.ideacards.data.dao.NoteDao;
 import com.example.ideacards.data.entity.NoteEntity;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,6 +56,7 @@ public class ArchiveActivity extends AppCompatActivity {
     private RecyclerView rvArchiveNotes;
     private ImageButton btnBack;
     private TextView btnRemind;
+    private TextView btnExport;
 
     private NoteListAdapter adapter;
     private NoteDao noteDao;
@@ -75,6 +84,7 @@ public class ArchiveActivity extends AppCompatActivity {
         rvArchiveNotes = findViewById(R.id.rv_archive_notes);
         btnBack = findViewById(R.id.btn_back);
         btnRemind = findViewById(R.id.btn_remind);
+        btnExport = findViewById(R.id.btn_export);
 
         // 设置 RecyclerView：纵向列表，从上到下排列
         rvArchiveNotes.setLayoutManager(new LinearLayoutManager(this));
@@ -93,6 +103,9 @@ public class ArchiveActivity extends AppCompatActivity {
 
         // 提醒按钮点击：先检查权限，再决定是申请还是直接发送通知
         btnRemind.setOnClickListener(v -> onRemindClicked());
+
+        // 导出按钮点击：将全部笔记导出为 Markdown 并呼起系统分享面板
+        btnExport.setOnClickListener(v -> exportToMarkdown());
 
         // 首次加载：从数据库读取笔记
         loadNotes();
@@ -193,6 +206,113 @@ public class ArchiveActivity extends AppCompatActivity {
 
         // 发送通知，id 固定为 1（后续如需取消通知，通过 manager.cancel(1) 操作）
         manager.notify(1, builder.build());
+    }
+
+    /**
+     * 将全部笔记导出为 Markdown 文件，并通过系统分享面板发送。
+     *
+     * 流程：子线程查询数据库 → 拼接 Markdown → 写入临时 .md 文件 → FileProvider 获取 URI → 分享。
+     * 使用 FileProvider 而非纯文本分享，确保接收方看到的是 .md 文件而非 .txt。
+     */
+    private void exportToMarkdown() {
+        // 禁用按钮，防止重复点击
+        btnExport.setEnabled(false);
+
+        executor.execute(() -> {
+            // 子线程：从数据库查询全部笔记
+            List<NoteEntity> notes = noteDao.getAllNotes();
+
+            // 如果没有笔记，切回主线程提示
+            if (notes.isEmpty()) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    btnExport.setEnabled(true);
+                    Toast.makeText(this, "暂无笔记可导出", Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+
+            // 用 StringBuilder 拼接 Markdown 文本
+            StringBuilder md = new StringBuilder();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA);
+
+            // 标题行
+            md.append("# IdeaCards 随笔\n");
+
+            // 导出时间
+            String exportTime = sdf.format(new Date(System.currentTimeMillis()));
+            md.append("> 导出时间：").append(exportTime).append("\n\n");
+
+            // 遍历每条笔记，拼接为 Markdown 段落
+            for (NoteEntity note : notes) {
+                md.append("---\n\n");
+                // 笔记创建时间，加粗显示
+                String noteTime = sdf.format(new Date(note.getTimestamp()));
+                md.append("**[").append(noteTime).append("]**\n");
+                // 笔记正文内容
+                md.append(note.getContent()).append("\n\n");
+            }
+
+            // 末尾分隔线
+            md.append("---\n");
+
+            // 将 Markdown 写入 cache/export/ 目录下的临时文件
+            String markdown = md.toString();
+            Uri fileUri = null;
+            try {
+                // 确保 export 子目录存在
+                File exportDir = new File(getCacheDir(), "export");
+                if (!exportDir.exists()) {
+                    exportDir.mkdirs();
+                }
+
+                // 用导出时间作为文件名，冒号替换为短横线（Windows 文件名不允许冒号）
+                String fileName = "IdeaCards_" + exportTime.replace(":", "-") + ".md";
+                File mdFile = new File(exportDir, fileName);
+
+                // 写入文件内容
+                FileWriter writer = new FileWriter(mdFile);
+                writer.write(markdown);
+                writer.close();
+
+                // 通过 FileProvider 获取 content:// URI（安全分享，不需要读写权限）
+                fileUri = FileProvider.getUriForFile(
+                        this,
+                        "com.example.ideacards.fileprovider",
+                        mdFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // 捕获最终的 URI 供 lambda 使用
+            final Uri shareUri = fileUri;
+
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                btnExport.setEnabled(true);
+
+                // 文件写入失败时回退为纯文本分享
+                if (shareUri == null) {
+                    Toast.makeText(this, "文件创建失败，以文本方式分享", Toast.LENGTH_SHORT).show();
+                    Intent fallback = new Intent(Intent.ACTION_SEND);
+                    fallback.setType("text/plain");
+                    fallback.putExtra(Intent.EXTRA_TEXT, markdown);
+                    startActivity(Intent.createChooser(fallback, "分享笔记"));
+                    return;
+                }
+
+                // 构造分享 Intent：分享 .md 文件
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/markdown");
+                shareIntent.putExtra(Intent.EXTRA_STREAM, shareUri);
+                shareIntent.putExtra(Intent.EXTRA_SUBJECT, "IdeaCards 随笔导出");
+                // 授予接收方临时读取权限（FLAG_GRANT_READ_URI_PERMISSION）
+                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                // 呼起系统分享面板
+                startActivity(Intent.createChooser(shareIntent, "分享笔记"));
+            });
+        });
     }
 
     /**

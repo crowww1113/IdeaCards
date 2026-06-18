@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider 路径配置：声明 cache 目录可被外部应用通过 content:// URI 访问 -->
+<paths>
+    <cache-path
+        name="export"
+        path="export/" />
+</paths>

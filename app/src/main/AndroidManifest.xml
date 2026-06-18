@@ -40,6 +40,17 @@
             android:name=".data.provider.NoteContentProvider"
             android:authorities="com.example.ideacards.provider"
             android:exported="false" />
+
+        <!-- FileProvider：为导出的 Markdown 文件提供安全的 content:// URI -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.example.ideacards.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>
