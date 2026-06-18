@@ -32,6 +32,10 @@
             android:name=".ArchiveActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".DetailActivity"
+            android:exported="false" />
+
         <provider
             android:name=".data.provider.NoteContentProvider"
             android:authorities="com.example.ideacards.provider"

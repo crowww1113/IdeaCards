@@ -33,6 +33,20 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
     private final LayoutInflater inflater;
     private final List<NoteEntity> notes = new ArrayList<>();
 
+    /** 点击回调接口：外部（Activity）实现此接口以响应卡片点击 */
+    public interface OnNoteClickListener {
+        void onNoteClick(long noteId);
+    }
+
+    private OnNoteClickListener clickListener;
+
+    /**
+     * 设置点击监听器。
+     */
+    public void setOnNoteClickListener(OnNoteClickListener listener) {
+        this.clickListener = listener;
+    }
+
     public NoteListAdapter(Context context) {
         this.inflater = LayoutInflater.from(context);
     }
@@ -71,6 +85,13 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
         } else {
             holder.tvStatus.setText("普通");
         }
+
+        // 卡片点击：将笔记 ID 回传给外部监听器（跳转详情页）
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onNoteClick(note.getId());
+            }
+        });
     }
 
     @Override

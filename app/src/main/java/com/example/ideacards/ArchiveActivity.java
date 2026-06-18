@@ -3,11 +3,13 @@ package com.example.ideacards;
 import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -40,6 +42,8 @@ public class ArchiveActivity extends AppCompatActivity {
     private static final String CHANNEL_NAME = "笔记提醒";
     /** 权限申请请求码，用于在 onRequestPermissionsResult 中识别回调来源 */
     private static final int REQUEST_CODE_NOTIFICATION = 1001;
+    /** 详情页请求码，用于在 onActivityResult 中识别回调来源 */
+    private static final int REQUEST_DETAIL = 1002;
 
     private RecyclerView rvArchiveNotes;
     private ImageButton btnBack;
@@ -76,6 +80,13 @@ public class ArchiveActivity extends AppCompatActivity {
         rvArchiveNotes.setLayoutManager(new LinearLayoutManager(this));
         adapter = new NoteListAdapter(this);
         rvArchiveNotes.setAdapter(adapter);
+
+        // 列表项点击：跳转到详情页查看/编辑笔记
+        adapter.setOnNoteClickListener(noteId -> {
+            Intent intent = new Intent(ArchiveActivity.this, DetailActivity.class);
+            intent.putExtra(DetailActivity.EXTRA_NOTE_ID, noteId);
+            startActivityForResult(intent, REQUEST_DETAIL);
+        });
 
         // 返回按钮点击：关闭当前页，回到 MainActivity
         btnBack.setOnClickListener(v -> finish());
@@ -133,6 +144,25 @@ public class ArchiveActivity extends AppCompatActivity {
         if (grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             sendNotification();
+        }
+    }
+
+    /**
+     * 详情页返回结果回调。
+     * 当用户在详情页保存修改或删除笔记后，刷新归档列表以反映最新数据。
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_DETAIL && resultCode == RESULT_OK && data != null) {
+            int action = data.getIntExtra(DetailActivity.RESULT_ACTION, 0);
+            if (action == DetailActivity.ACTION_UPDATED) {
+                Toast.makeText(this, "笔记已更新", Toast.LENGTH_SHORT).show();
+            } else if (action == DetailActivity.ACTION_DELETED) {
+                Toast.makeText(this, "笔记已删除", Toast.LENGTH_SHORT).show();
+            }
+            // 刷新列表，显示最新数据
+            loadNotes();
         }
     }
 
