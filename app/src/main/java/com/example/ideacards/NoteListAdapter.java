@@ -127,11 +127,12 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.CHINA);
         holder.tvTime.setText(sdf.format(new Date(note.getTimestamp())));
 
-        // 状态标签
-        if (note.getStatus() == STATUS_ARCHIVED) {
-            holder.tvStatus.setText("已归档");
+        // 标签：有标签显示 #标签名，无标签则隐藏
+        if (note.getTag() != null && !note.getTag().isEmpty()) {
+            holder.tvStatus.setText("#" + note.getTag());
+            holder.tvStatus.setVisibility(View.VISIBLE);
         } else {
-            holder.tvStatus.setText("普通");
+            holder.tvStatus.setVisibility(View.GONE);
         }
 
         if (selectionMode) {

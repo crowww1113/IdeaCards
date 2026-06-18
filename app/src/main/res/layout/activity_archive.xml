@@ -113,6 +113,25 @@
 
     </LinearLayout>
 
+    <!-- ═══ 标签过滤栏 ═══ -->
+    <!-- 水平滚动的标签气泡行，包含"全部"及各个标签 -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:id="@+id/ll_filter_tags"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical" />
+
+    </HorizontalScrollView>
+
     <!-- ═══ 笔记列表区 ═══ -->
     <!-- 左右 margin=20dp，隐藏滚动条 -->
     <androidx.recyclerview.widget.RecyclerView

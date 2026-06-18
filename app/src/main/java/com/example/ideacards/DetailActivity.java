@@ -37,6 +37,7 @@ public class DetailActivity extends AppCompatActivity {
     public static final int ACTION_DELETED = 2;
 
     private EditText etContent;
+    private EditText etTag;
     private TextView btnSave;
     private TextView btnDelete;
     private ImageButton btnBack;
@@ -65,6 +66,7 @@ public class DetailActivity extends AppCompatActivity {
 
         // 绑定视图
         etContent = findViewById(R.id.et_detail_content);
+        etTag = findViewById(R.id.et_detail_tag);
         btnSave = findViewById(R.id.btn_detail_save);
         btnDelete = findViewById(R.id.btn_detail_delete);
         btnBack = findViewById(R.id.btn_detail_back);
@@ -106,8 +108,10 @@ public class DetailActivity extends AppCompatActivity {
             return; // 数据尚未加载完成，忽略点击
         }
 
-        // 更新笔记内容和时间戳
+        // 更新笔记内容、标签和时间戳
         currentNote.setContent(content);
+        String tag = etTag.getText().toString().trim();
+        currentNote.setTag(tag.isEmpty() ? null : tag);
         currentNote.setTimestamp(System.currentTimeMillis());
 
         // 禁用按钮防止重复点击
@@ -186,6 +190,10 @@ public class DetailActivity extends AppCompatActivity {
                 }
                 currentNote = note;
                 etContent.setText(note.getContent());
+                // 填充标签（可能为 null）
+                if (note.getTag() != null) {
+                    etTag.setText(note.getTag());
+                }
                 // 光标移到末尾，方便用户直接编辑
                 etContent.setSelection(etContent.getText().length());
             });

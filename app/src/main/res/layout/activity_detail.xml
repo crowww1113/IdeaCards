@@ -82,6 +82,52 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- ═══ 标签编辑区 ═══ -->
+    <!-- 标签输入框：圆角白卡风格 -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="12dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/card_white"
+        app:strokeWidth="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="4dp">
+
+            <!-- 标签图标前缀 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🏷"
+                android:textSize="16sp"
+                android:layout_marginEnd="8dp" />
+
+            <!-- 标签输入框 -->
+            <EditText
+                android:id="@+id/et_detail_tag"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="输入标签（如：工作、生活）"
+                android:textColorHint="@color/text_secondary"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:singleLine="true"
+                android:inputType="text"
+                android:background="@android:color/transparent" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- ═══ 底部操作区 ═══ -->
     <!-- 双按钮横排：治愈蓝保存 + 柔粉删除 -->
     <LinearLayout

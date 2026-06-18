@@ -9,7 +9,7 @@ import androidx.room.RoomDatabase;
 import com.example.ideacards.data.dao.NoteDao;
 import com.example.ideacards.data.entity.NoteEntity;
 
-@Database(entities = {NoteEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {NoteEntity.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static volatile AppDatabase INSTANCE;
@@ -21,7 +21,9 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
-                            AppDatabase.class, "ideacards.db").build();
+                            AppDatabase.class, "ideacards.db")
+                            .fallbackToDestructiveMigration()
+                            .build();
                 }
             }
         }

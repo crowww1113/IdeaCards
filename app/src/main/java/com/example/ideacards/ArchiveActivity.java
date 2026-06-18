@@ -8,9 +8,11 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -62,6 +64,13 @@ public class ArchiveActivity extends AppCompatActivity {
     private NoteListAdapter adapter;
     private NoteDao noteDao;
 
+    /** 标签过滤栏容器 */
+    private LinearLayout llFilterTags;
+    /** 当前筛选标签，null 表示显示全部 */
+    private String currentFilterTag = null;
+    /** 默认标签列表（与主页一致） */
+    private static final String[] DEFAULT_TAGS = {"工作", "生活", "学习"};
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
@@ -84,6 +93,10 @@ public class ArchiveActivity extends AppCompatActivity {
         btnRemind = findViewById(R.id.btn_remind);
         btnExport = findViewById(R.id.btn_export);
         btnSelect = findViewById(R.id.btn_select);
+        llFilterTags = findViewById(R.id.ll_filter_tags);
+
+        // 初始化标签过滤栏
+        setupFilterTags();
 
         // RecyclerView
         rvArchiveNotes.setLayoutManager(new LinearLayoutManager(this));
@@ -404,12 +417,103 @@ public class ArchiveActivity extends AppCompatActivity {
     }
 
     // ═══════════════════════════════════════
+    //  标签过滤栏
+    // ═══════════════════════════════════════
+
+    /**
+     * 动态创建标签过滤栏：包含"全部"及各个默认标签。
+     * 点击标签后查询对应数据并刷新列表。
+     */
+    private void setupFilterTags() {
+        // "全部"标签
+        TextView allBubble = createFilterBubble("全部");
+        allBubble.setOnClickListener(v -> {
+            currentFilterTag = null;
+            refreshFilterHighlight();
+            loadNotes();
+        });
+        llFilterTags.addView(allBubble);
+
+        // 各个默认标签
+        for (String tag : DEFAULT_TAGS) {
+            TextView bubble = createFilterBubble("#" + tag);
+            bubble.setOnClickListener(v -> {
+                currentFilterTag = tag;
+                refreshFilterHighlight();
+                loadNotesByTag(tag);
+            });
+            llFilterTags.addView(bubble);
+        }
+
+        // 默认高亮"全部"
+        refreshFilterHighlight();
+    }
+
+    /**
+     * 创建过滤栏中的单个标签 TextView。
+     */
+    private TextView createFilterBubble(String text) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextSize(13);
+        tv.setTextColor(getColor(R.color.text_primary));
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(dp(16), dp(6), dp(16), dp(6));
+        return tv;
+    }
+
+    /**
+     * 刷新过滤栏的高亮状态。
+     */
+    private void refreshFilterHighlight() {
+        for (int i = 0; i < llFilterTags.getChildCount(); i++) {
+            View child = llFilterTags.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tv = (TextView) child;
+                String text = tv.getText().toString();
+                // 判断是否是当前选中的标签
+                boolean isSelected = false;
+                if (currentFilterTag == null && "全部".equals(text)) {
+                    isSelected = true;
+                } else if (currentFilterTag != null && text.equals("#" + currentFilterTag)) {
+                    isSelected = true;
+                }
+                tv.setBackgroundColor(isSelected
+                        ? getColor(R.color.accent_pastel_blue)
+                        : android.graphics.Color.TRANSPARENT);
+            }
+        }
+    }
+
+    /**
+     * 按标签查询笔记并刷新列表。
+     */
+    private void loadNotesByTag(String tag) {
+        executor.execute(() -> {
+            List<NoteEntity> notes = noteDao.getNotesByTag(tag);
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                adapter.setData(notes);
+            });
+        });
+    }
+
+    /** dp 转 px 工具方法 */
+    private int dp(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    // ═══════════════════════════════════════
     //  数据加载
     // ═══════════════════════════════════════
 
     private void loadNotes() {
         executor.execute(() -> {
-            List<NoteEntity> notes = noteDao.getAllNotes();
+            // 根据当前筛选标签决定查询方式
+            List<NoteEntity> notes = (currentFilterTag == null)
+                    ? noteDao.getAllNotes()
+                    : noteDao.getNotesByTag(currentFilterTag);
+
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 adapter.setData(notes);

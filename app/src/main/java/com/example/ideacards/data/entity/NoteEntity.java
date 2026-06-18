@@ -15,6 +15,9 @@ public class NoteEntity {
 
     private int status;
 
+    /** 笔记标签：如"工作"、"生活"、"学习"，可为空 */
+    private String tag;
+
     public NoteEntity() {
     }
 
@@ -54,5 +57,13 @@ public class NoteEntity {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 }

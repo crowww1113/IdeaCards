@@ -3,13 +3,16 @@ package com.example.ideacards;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.cardview.widget.CardView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -47,6 +50,14 @@ public class MainActivity extends AppCompatActivity {
     private BubbleAdapter adapter;
     private NoteDao noteDao;
 
+    /** 标签容器，用于动态创建标签气泡 */
+    private LinearLayout llTags;
+    /** 当前选中的标签，null 表示未选中 */
+    private String selectedTag = null;
+
+    /** 默认标签列表 */
+    private static final String[] DEFAULT_TAGS = {"工作", "生活", "学习"};
+
     /** 单线程池，保证数据库操作串行执行，避免并发冲突 */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -72,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
         etInput = findViewById(R.id.et_input);
         btnSend = findViewById(R.id.btn_send);
         btnArchive = findViewById(R.id.btn_archive);
+        llTags = findViewById(R.id.ll_tags);
+
+        // 初始化标签气泡
+        setupTagBubbles();
 
         // 设置 RecyclerView：纵向列表，新条目从底部堆叠（聊天气泡风格）
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -117,8 +132,9 @@ public class MainActivity extends AppCompatActivity {
         // 防快速连点：发送期间禁用按钮
         btnSend.setEnabled(false);
 
-        // 构造笔记实体，status 默认 0（普通笔记）
+        // 构造笔记实体，status 默认 0（普通笔记），绑定当前选中的标签
         NoteEntity note = new NoteEntity(content, System.currentTimeMillis(), 0);
+        note.setTag(selectedTag);
 
         executor.execute(() -> {
             // 子线程写入数据库（Room 不允许在主线程操作数据库）
@@ -144,11 +160,73 @@ public class MainActivity extends AppCompatActivity {
             List<NoteEntity> notes = noteDao.getAllNotes();
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) {
-                    return; // Activity 已销毁，跳过 UI 更新
+                    return;
                 }
                 adapter.setData(notes);
             });
         });
+    }
+
+    /**
+     * 动态创建标签气泡，放入 llTags 容器中。
+     * 点击气泡切换选中状态：选中时高亮（治愈蓝背景），再次点击取消选中。
+     */
+    private void setupTagBubbles() {
+        for (String tag : DEFAULT_TAGS) {
+            TextView bubble = createTagBubble(tag);
+            bubble.setOnClickListener(v -> {
+                if (tag.equals(selectedTag)) {
+                    // 再次点击同一个标签 → 取消选中
+                    selectedTag = null;
+                    refreshTagHighlight();
+                } else {
+                    selectedTag = tag;
+                    refreshTagHighlight();
+                }
+            });
+            llTags.addView(bubble);
+        }
+    }
+
+    /**
+     * 创建单个标签气泡 TextView，使用 MaterialCardView 包裹实现圆角胶囊效果。
+     *
+     * @param tag 标签文字
+     * @return 配置好的 TextView
+     */
+    private TextView createTagBubble(String tag) {
+        TextView tv = new TextView(this);
+        tv.setText("#" + tag);
+        tv.setTextSize(13);
+        tv.setTextColor(getColor(R.color.text_primary));
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(dp(16), dp(6), dp(16), dp(6));
+        return tv;
+    }
+
+    /**
+     * 刷新所有标签气泡的高亮状态。
+     * 选中的标签：治愈蓝背景；未选中：透明背景。
+     */
+    private void refreshTagHighlight() {
+        for (int i = 0; i < llTags.getChildCount(); i++) {
+            View child = llTags.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tv = (TextView) child;
+                // 从文字中取出标签名（去掉 # 前缀）
+                String tagName = tv.getText().toString().replace("#", "");
+                if (tagName.equals(selectedTag)) {
+                    tv.setBackgroundColor(getColor(R.color.accent_pastel_blue));
+                } else {
+                    tv.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                }
+            }
+        }
+    }
+
+    /** dp 转 px 工具方法 */
+    private int dp(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     /**

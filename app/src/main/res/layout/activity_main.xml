@@ -96,48 +96,73 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:orientation="vertical"
             android:paddingHorizontal="8dp"
             android:paddingVertical="4dp">
 
-            <!-- 输入框：无边框透明背景，与卡片融为一体 -->
-            <EditText
-                android:id="@+id/et_input"
-                android:layout_width="0dp"
+            <!-- 标签选择区：水平滑动的标签气泡 -->
+            <HorizontalScrollView
+                android:id="@+id/hsv_tags"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="写下你的想法..."
-                android:textColorHint="@color/text_secondary"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp"
-                android:maxLines="3"
-                android:inputType="textMultiLine"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="12dp"
-                android:background="@android:color/transparent" />
+                android:scrollbars="none"
+                android:layout_marginBottom="4dp">
 
-            <!-- 发送按钮：治愈蓝背景胶囊形 -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/accent_pastel_blue"
-                app:strokeWidth="0dp">
-
-                <TextView
-                    android:id="@+id/btn_send"
+                <LinearLayout
+                    android:id="@+id/ll_tags"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingHorizontal="20dp"
-                    android:paddingVertical="10dp"
-                    android:text="发送"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_primary" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical" />
 
-            </com.google.android.material.card.MaterialCardView>
+            </HorizontalScrollView>
+
+            <!-- 输入行：输入框 + 发送按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- 输入框：无边框透明背景，与卡片融为一体 -->
+                <EditText
+                    android:id="@+id/et_input"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="写下你的想法..."
+                    android:textColorHint="@color/text_secondary"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:maxLines="3"
+                    android:inputType="textMultiLine"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="12dp"
+                    android:background="@android:color/transparent" />
+
+                <!-- 发送按钮：治愈蓝背景胶囊形 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/accent_pastel_blue"
+                    app:strokeWidth="0dp">
+
+                    <TextView
+                        android:id="@+id/btn_send"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="20dp"
+                        android:paddingVertical="10dp"
+                        android:text="发送"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
 
         </LinearLayout>
 

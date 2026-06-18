@@ -44,4 +44,11 @@ public interface NoteDao {
      */
     @Query("DELETE FROM notes WHERE id IN (:ids)")
     void deleteNotesByIds(List<Long> ids);
+
+    /**
+     * 按标签筛选笔记，用于归档页的标签过滤功能。
+     * tag 为 null 时不会命中此查询（由调用方决定走 getAllNotes 还是此方法）。
+     */
+    @Query("SELECT * FROM notes WHERE tag = :tag ORDER BY timestamp DESC")
+    List<NoteEntity> getNotesByTag(String tag);
 }
