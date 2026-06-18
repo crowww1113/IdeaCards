@@ -3,9 +3,9 @@ package com.example.ideacards;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -37,8 +37,8 @@ public class DetailActivity extends AppCompatActivity {
     public static final int ACTION_DELETED = 2;
 
     private EditText etContent;
-    private Button btnSave;
-    private Button btnDelete;
+    private TextView btnSave;
+    private TextView btnDelete;
     private ImageButton btnBack;
 
     private NoteDao noteDao;

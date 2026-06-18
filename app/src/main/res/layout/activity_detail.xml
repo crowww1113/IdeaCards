@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 详情页布局：顶部操作栏 + 全屏编辑区 + 底部操作按钮 -->
+<!-- 详情页布局：沉浸式阅读风格
+     柔和美学：燕麦背景、中央白卡编辑区、双色底部按钮 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_screen"
     android:orientation="vertical"
     tools:context=".DetailActivity">
 
-    <!-- 顶部操作栏：返回按钮 -->
+    <!-- ═══ 顶部操作栏 ═══ -->
+    <!-- 返回按钮 + 居中标题，极简风格 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="8dp"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="12dp">
 
-        <!-- 返回按钮，点击关闭当前页 -->
+        <!-- 返回按钮：透明背景 -->
         <ImageButton
             android:id="@+id/btn_detail_back"
             android:layout_width="48dp"
@@ -23,9 +30,10 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="返回"
             android:src="@android:drawable/ic_menu_revert"
-            android:scaleType="centerInside" />
+            android:scaleType="centerInside"
+            android:tint="@color/text_primary" />
 
-        <!-- 标题提示文字 -->
+        <!-- 标题文字：深褐色 -->
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -33,7 +41,7 @@
             android:gravity="center"
             android:text="笔记详情"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textColor="@color/text_primary" />
 
         <!-- 右侧占位，保持标题居中 -->
         <View
@@ -42,56 +50,94 @@
 
     </LinearLayout>
 
-    <!-- 分割线 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray" />
-
-    <!-- 笔记内容编辑区，weight=1 撑满剩余空间 -->
-    <EditText
-        android:id="@+id/et_detail_content"
+    <!-- ═══ 中央编辑区 ═══ -->
+    <!-- MaterialCardView：圆角 24dp、无阴影、白底、20dp 外边距、24dp 内边距 -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="top|start"
-        android:hint="笔记内容..."
-        android:padding="16dp"
-        android:textSize="16sp"
-        android:background="@android:color/transparent"
-        android:inputType="textMultiLine" />
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/card_white"
+        app:strokeWidth="0dp">
 
-    <!-- 分割线 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray" />
+        <!-- 全屏拉伸的 EditText，透明背景与卡片融为一体 -->
+        <EditText
+            android:id="@+id/et_detail_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="top|start"
+            android:hint="笔记内容..."
+            android:textColorHint="@color/text_secondary"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:padding="24dp"
+            android:background="@android:color/transparent"
+            android:inputType="textMultiLine" />
 
-    <!-- 底部操作按钮：保存修改 + 删除此条 -->
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- ═══ 底部操作区 ═══ -->
+    <!-- 双按钮横排：治愈蓝保存 + 柔粉删除 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="24dp"
         android:gravity="center">
 
-        <!-- 保存修改按钮 -->
-        <Button
-            android:id="@+id/btn_detail_save"
+        <!-- 保存按钮：治愈蓝背景、大圆角、无阴影 -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="保存修改" />
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/accent_pastel_blue"
+            app:strokeWidth="0dp">
 
-        <!-- 删除此条按钮 -->
-        <Button
-            android:id="@+id/btn_detail_delete"
+            <TextView
+                android:id="@+id/btn_detail_save"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingVertical="14dp"
+                android:text="保存修改"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 删除按钮：柔粉背景、大圆角、无阴影 -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="删除此条" />
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/accent_pastel_pink"
+            app:strokeWidth="0dp">
+
+            <TextView
+                android:id="@+id/btn_detail_delete"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingVertical="14dp"
+                android:text="删除此条"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary" />
+
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 

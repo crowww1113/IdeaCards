@@ -1,5 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- ═══════════════════════════════════════════════════
+         柔和美学 (Meditation Design) 全局色彩字典
+         ═══════════════════════════════════════════════════ -->
+
+    <!-- 全局背景：燕麦色，禁止使用纯白 -->
+    <color name="bg_screen">#F9F8F4</color>
+
+    <!-- 卡片背景：纯白色，用于 MaterialCardView -->
+    <color name="card_white">#FFFFFF</color>
+
+    <!-- 主文本色：深褐色，禁止使用纯黑 -->
+    <color name="text_primary">#4A4543</color>
+
+    <!-- 副文本色：浅灰紫，用于时间戳、提示文字 -->
+    <color name="text_secondary">#9E9894</color>
+
+    <!-- 强调色：治愈蓝，用于按钮背景、装饰线 -->
+    <color name="accent_pastel_blue">#E8F0F3</color>
+
+    <!-- 辅助色：柔粉色，用于辅助装饰、删除按钮 -->
+    <color name="accent_pastel_pink">#F8EBEB</color>
+
+    <!-- 分割线：极浅暖灰 -->
+    <color name="divider_color">#EFECE8</color>
+
+    <!-- 保留原有基础色（系统兼容需要） -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

@@ -7,8 +7,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -47,7 +47,7 @@ public class ArchiveActivity extends AppCompatActivity {
 
     private RecyclerView rvArchiveNotes;
     private ImageButton btnBack;
-    private Button btnRemind;
+    private TextView btnRemind;
 
     private NoteListAdapter adapter;
     private NoteDao noteDao;

@@ -1,85 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 主界面布局：顶部名言区、中间笔记列表、底部输入区 -->
+<!-- 主界面布局：顶部名言区 + 中间笔记列表 + 底部悬浮输入区
+     柔和美学：燕麦色背景、圆角卡片、呼吸感留白 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_screen"
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <!-- 顶部栏：名言展示区 + 归档入口按钮 -->
-    <LinearLayout
+    <!-- ═══ 顶部名言卡片区 ═══ -->
+    <!-- MaterialCardView：圆角 24dp、无阴影、白底，20dp 外边距 -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="8dp">
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/card_white"
+        app:strokeWidth="0dp">
 
-        <!-- 每日一言展示区，weight=1 撑满左侧空间 -->
-        <TextView
-            android:id="@+id/tv_quote"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:textSize="16sp"
-            android:textColor="@android:color/darker_gray"
-            android:text="" />
+            android:padding="20dp">
 
-        <!-- 归档入口按钮，点击跳转到 ArchiveActivity -->
-        <Button
-            android:id="@+id/btn_archive"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="归档" />
+            <!-- 每日一言文字，深褐主文本色 -->
+            <TextView
+                android:id="@+id/tv_quote"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="15sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="4dp"
+                android:text="" />
 
-    </LinearLayout>
+            <!-- 归档入口按钮：治愈蓝背景、大圆角、无阴影 -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/accent_pastel_blue"
+                app:strokeWidth="0dp">
 
-    <!-- 中间笔记列表，weight=1 撑满剩余空间 -->
+                <TextView
+                    android:id="@+id/btn_archive"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="8dp"
+                    android:text="归档"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- ═══ 中间笔记列表 ═══ -->
+    <!-- RecyclerView 撑满剩余空间，左右留白 12dp，隐藏滚动条 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_notes"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="8dp"
-        android:clipToPadding="false" />
+        android:layout_marginTop="8dp"
+        android:paddingHorizontal="12dp"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
 
-    <!-- 底部分割线 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray" />
-
-    <!-- 底部输入区 -->
-    <LinearLayout
+    <!-- ═══ 底部悬浮输入胶囊区 ═══ -->
+    <!-- MaterialCardView：胶囊形圆角 28dp、白底、底部悬浮 20dp -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp"
-        android:gravity="center_vertical">
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="@color/card_white"
+        app:strokeWidth="0dp">
 
-        <!-- 内容输入框，weight=1 占据剩余宽度 -->
-        <EditText
-            android:id="@+id/et_input"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="写下你的想法..."
-            android:maxLines="3"
-            android:inputType="textMultiLine"
-            android:padding="8dp"
-            android:background="@android:drawable/edit_text" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp">
 
-        <!-- 发送按钮 -->
-        <Button
-            android:id="@+id/btn_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="发送" />
+            <!-- 输入框：无边框透明背景，与卡片融为一体 -->
+            <EditText
+                android:id="@+id/et_input"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="写下你的想法..."
+                android:textColorHint="@color/text_secondary"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:maxLines="3"
+                android:inputType="textMultiLine"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp"
+                android:background="@android:color/transparent" />
 
-    </LinearLayout>
+            <!-- 发送按钮：治愈蓝背景胶囊形 -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/accent_pastel_blue"
+                app:strokeWidth="0dp">
+
+                <TextView
+                    android:id="@+id/btn_send"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="10dp"
+                    android:text="发送"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>

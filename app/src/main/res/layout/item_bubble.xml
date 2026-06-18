@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 单边聊天气泡布局：展示笔记内容和时间戳 -->
+<!-- 聊天气泡卡片：柔和美学
+     MaterialCardView 圆角 16dp、弱阴影、白底
+     展示笔记内容 + 右下角时间戳 -->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="#ECEFF1"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="@color/card_white"
     app:strokeWidth="0dp"
-    app:contentPadding="12dp">
+    app:contentPadding="16dp">
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- 笔记内容 -->
+        <!-- 笔记内容：深褐色主文本 -->
         <TextView
             android:id="@+id/tv_content"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
-            android:textColor="@android:color/black"
-            android:maxWidth="260dp"
+            android:textColor="@color/text_primary"
+            android:lineSpacingExtra="4dp"
             android:text="" />
 
-        <!-- 时间戳 -->
+        <!-- 时间戳：浅灰紫副文本，右下对齐 -->
         <TextView
             android:id="@+id/tv_timestamp"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
+            android:gravity="end"
             android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/text_secondary"
             android:text="" />
 
     </LinearLayout>

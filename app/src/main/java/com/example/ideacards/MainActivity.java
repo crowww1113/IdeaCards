@@ -3,7 +3,6 @@ package com.example.ideacards;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,8 +37,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvQuote;
     private RecyclerView rvNotes;
     private EditText etInput;
-    private Button btnSend;
-    private Button btnArchive;
+    private TextView btnSend;
+    private TextView btnArchive;
 
     private BubbleAdapter adapter;
     private NoteDao noteDao;

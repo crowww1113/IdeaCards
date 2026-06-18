@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 归档页面布局：顶部操作栏 + 笔记列表 -->
+<!-- 归档列表页布局：顶部导航栏 + 笔记列表
+     柔和美学：燕麦背景、大圆角卡片、治愈蓝按钮 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_screen"
     android:orientation="vertical"
     tools:context=".ArchiveActivity">
 
-    <!-- 顶部操作栏：返回按钮 + 提醒按钮 -->
+    <!-- ═══ 顶部导航栏 ═══ -->
+    <!-- 横向布局：返回键 + 标题 + 提醒按钮 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="8dp"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="12dp">
 
-        <!-- 返回按钮，点击结束当前页回到主界面 -->
+        <!-- 返回按钮：透明背景，视觉轻盈 -->
         <ImageButton
             android:id="@+id/btn_back"
             android:layout_width="48dp"
@@ -23,36 +30,52 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="返回"
             android:src="@android:drawable/ic_menu_revert"
-            android:scaleType="centerInside" />
+            android:scaleType="centerInside"
+            android:tint="@color/text_primary" />
 
-        <!-- 占位弹簧，把提醒按钮推到右侧 -->
-        <View
+        <!-- 页面标题：深褐主文本 -->
+        <TextView
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="灵感归档"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
 
-        <!-- 提醒我整理按钮，暂只预留 id，后续实现通知功能 -->
-        <Button
-            android:id="@+id/btn_remind"
+        <!-- 提醒按钮：治愈蓝背景、大圆角、无阴影 -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="提醒我整理" />
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/accent_pastel_blue"
+            app:strokeWidth="0dp">
+
+            <TextView
+                android:id="@+id/btn_remind"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:text="提醒我整理"
+                android:textSize="13sp"
+                android:textColor="@color/text_primary" />
+
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 
-    <!-- 分割线 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray" />
-
-    <!-- 笔记列表，weight=1 撑满剩余空间 -->
+    <!-- ═══ 笔记列表区 ═══ -->
+    <!-- 左右 margin=20dp，隐藏滚动条 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_archive_notes"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="8dp"
-        android:clipToPadding="false" />
+        android:paddingHorizontal="20dp"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
 
 </LinearLayout>
