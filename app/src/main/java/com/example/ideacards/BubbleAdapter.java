@@ -18,23 +18,33 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * RecyclerView 适配器：将 NoteEntity 列表渲染为聊天气泡列表。
+ * 主页聊天气泡适配器：渲染笔记为气泡列表。
+ * 支持长按回调（用于弹出 PopupMenu）。
  */
 public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder> {
 
-    /** 时间格式化器，线程安全方式每次在绑定数据时使用 */
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm";
 
     private final LayoutInflater inflater;
     private final List<NoteEntity> notes = new ArrayList<>();
 
+    /** 长按回调接口：外部 Activity 实现，用于弹出 PopupMenu */
+    public interface OnNoteLongClickListener {
+        void onNoteLongClick(long noteId, View anchorView);
+    }
+
+    private OnNoteLongClickListener longClickListener;
+
     public BubbleAdapter(Context context) {
         this.inflater = LayoutInflater.from(context);
     }
 
+    public void setOnNoteLongClickListener(OnNoteLongClickListener listener) {
+        this.longClickListener = listener;
+    }
+
     /**
      * 替换整个数据列表并刷新 UI。
-     * 调用方负责切换到主线程。
      */
     public void setData(List<NoteEntity> newNotes) {
         notes.clear();
@@ -56,10 +66,17 @@ public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder
         // 设置笔记内容
         holder.tvContent.setText(note.getContent());
 
-        // 格式化时间戳为可读字符串
+        // 格式化时间戳
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.CHINA);
-        String timeStr = sdf.format(new Date(note.getTimestamp()));
-        holder.tvTimestamp.setText(timeStr);
+        holder.tvTimestamp.setText(sdf.format(new Date(note.getTimestamp())));
+
+        // 长按：触发回调，传入 anchorView 用于定位 PopupMenu
+        holder.itemView.setOnLongClickListener(v -> {
+            if (longClickListener != null) {
+                longClickListener.onNoteLongClick(note.getId(), v);
+            }
+            return true;
+        });
     }
 
     @Override
@@ -68,7 +85,7 @@ public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder
     }
 
     /**
-     * ViewHolder：持有 item_bubble.xml 中的各个控件引用。
+     * ViewHolder：持有 item_bubble.xml 中的控件引用。
      */
     static class ViewHolder extends RecyclerView.ViewHolder {
 

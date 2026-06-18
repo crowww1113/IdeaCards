@@ -38,4 +38,10 @@ public interface NoteDao {
 
     @Query("SELECT id AS _id, content, timestamp, status FROM notes WHERE id = :id")
     Cursor getNoteByIdCursor(long id);
+
+    /**
+     * 根据 ID 列表批量删除笔记，用于多选批量删除功能。
+     */
+    @Query("DELETE FROM notes WHERE id IN (:ids)")
+    void deleteNotesByIds(List<Long> ids);
 }

@@ -3,9 +3,13 @@ package com.example.ideacards;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.EditText;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -77,6 +81,10 @@ public class MainActivity extends AppCompatActivity {
         adapter = new BubbleAdapter(this);
         rvNotes.setAdapter(adapter);
 
+        // 长按卡片：弹出 PopupMenu（编辑卡片 / 彻底删除）
+        adapter.setOnNoteLongClickListener((noteId, anchorView) ->
+                showNotePopup(noteId, anchorView));
+
         // 发送按钮点击：校验输入 -> 子线程写入数据库 -> 刷新列表
         btnSend.setOnClickListener(v -> onSendClicked());
 
@@ -144,7 +152,62 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 每次页面从后台回到前台时重新加载笔记。
+     * 在长按的气泡卡片旁边弹出浮动菜单。
+     * "编辑卡片"跳转详情页，"彻底删除"弹出二次确认后直接删除。
+     *
+     * @param noteId    笔记 ID
+     * @param anchorView 被长按的 View，PopupMenu 锚定在此 View 旁弹出
+     */
+    private void showNotePopup(long noteId, View anchorView) {
+        PopupMenu popup = new PopupMenu(this, anchorView);
+        popup.getMenu().add(0, 1, 0, "编辑卡片");
+        popup.getMenu().add(0, 2, 1, "彻底删除");
+
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                // 编辑：跳转到详情页
+                Intent intent = new Intent(this, DetailActivity.class);
+                intent.putExtra(DetailActivity.EXTRA_NOTE_ID, noteId);
+                startActivity(intent);
+                return true;
+            } else if (item.getItemId() == 2) {
+                // 删除：二次确认后执行
+                confirmDelete(noteId);
+                return true;
+            }
+            return false;
+        });
+
+        popup.show();
+    }
+
+    /**
+     * 单条删除的二次确认弹窗。
+     */
+    private void confirmDelete(long noteId) {
+        if (isFinishing() || isDestroyed()) return;
+
+        new AlertDialog.Builder(this)
+                .setTitle("确认删除")
+                .setMessage("确定要彻底删除这条笔记吗？此操作不可撤销。")
+                .setPositiveButton("删除", (dialog, which) -> {
+                    executor.execute(() -> {
+                        NoteEntity note = noteDao.getNoteById(noteId);
+                        if (note != null) {
+                            noteDao.delete(note);
+                        }
+                        runOnUiThread(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
+                            loadNotes();
+                        });
+                    });
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /**
      * 场景：用户在归档页编辑/删除笔记后按返回键回到主页，
      *       onResume 被调用，确保主页列表与数据库保持同步。
      */

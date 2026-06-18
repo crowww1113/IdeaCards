@@ -12,11 +12,21 @@
     app:cardBackgroundColor="@color/card_white"
     app:strokeWidth="0dp">
 
-    <!-- 横向容器：左侧装饰线 + 右侧内容 -->
+    <!-- 横向容器：复选框 + 装饰线 + 内容 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- 多选复选框：默认隐藏，编辑模式下由 Adapter 控制显隐 -->
+        <CheckBox
+            android:id="@+id/cb_select"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:visibility="gone"
+            android:buttonTint="@color/accent_pastel_blue" />
 
         <!-- 左侧装饰竖线：4dp 宽、治愈蓝、圆角 2dp -->
         <View

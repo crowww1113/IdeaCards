@@ -44,8 +44,10 @@
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
 
-        <!-- 导出 MD 按钮：柔粉背景、大圆角、无阴影 -->
+        <!-- 导出 MD 按钮：柔粉背景、大圆角、无阴影
+             编辑模式下切换为"删除选中"样式 -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_export"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
@@ -61,6 +63,28 @@
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="8dp"
                 android:text="导出 MD"
+                android:textSize="13sp"
+                android:textColor="@color/text_primary" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 选择按钮：进入编辑模式，默认隐藏，编辑模式下也用于退出 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/accent_pastel_blue"
+            app:strokeWidth="0dp">
+
+            <TextView
+                android:id="@+id/btn_select"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:text="选择"
                 android:textSize="13sp"
                 android:textColor="@color/text_primary" />
 

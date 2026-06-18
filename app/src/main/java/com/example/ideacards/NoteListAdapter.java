@@ -4,6 +4,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,52 +15,99 @@ import com.example.ideacards.data.entity.NoteEntity;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
- * RecyclerView 适配器：将 NoteEntity 列表渲染为笔记卡片列表。
- * 每张卡片展示内容摘要、时间和状态三个字段。
+ * 归档页 RecyclerView 适配器：
+ * 支持普通模式（点击查看/长按菜单）和编辑模式（复选框多选/批量删除）。
  */
 public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHolder> {
 
-    /** 时间格式化模板，线程安全方式每次在绑定数据时使用 */
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm";
-
-    /** status=0 为普通笔记，status=1 为已归档笔记 */
     private static final int STATUS_NORMAL = 0;
     private static final int STATUS_ARCHIVED = 1;
 
     private final LayoutInflater inflater;
     private final List<NoteEntity> notes = new ArrayList<>();
 
-    /** 点击回调接口：外部（Activity）实现此接口以响应卡片点击 */
+    // ═══ 回调接口 ═══
+
+    /** 单击回调：普通模式下点击卡片 */
     public interface OnNoteClickListener {
         void onNoteClick(long noteId);
     }
 
-    private OnNoteClickListener clickListener;
-
-    /**
-     * 设置点击监听器。
-     */
-    public void setOnNoteClickListener(OnNoteClickListener listener) {
-        this.clickListener = listener;
+    /** 长按回调：长按卡片时触发（用于弹出 PopupMenu） */
+    public interface OnNoteLongClickListener {
+        void onNoteLongClick(long noteId, View anchorView);
     }
+
+    private OnNoteClickListener clickListener;
+    private OnNoteLongClickListener longClickListener;
+
+    // ═══ 编辑模式状态 ═══
+
+    /** 是否处于编辑模式 */
+    private boolean selectionMode = false;
+    /** 已选中的笔记 ID 集合 */
+    private final Set<Long> selectedIds = new HashSet<>();
 
     public NoteListAdapter(Context context) {
         this.inflater = LayoutInflater.from(context);
     }
 
+    public void setOnNoteClickListener(OnNoteClickListener listener) {
+        this.clickListener = listener;
+    }
+
+    public void setOnNoteLongClickListener(OnNoteLongClickListener listener) {
+        this.longClickListener = listener;
+    }
+
     /**
      * 替换整个数据列表并刷新 UI。
-     * 调用方负责切换到主线程。
      */
     public void setData(List<NoteEntity> newNotes) {
         notes.clear();
         notes.addAll(newNotes);
         notifyDataSetChanged();
     }
+
+    // ═══ 编辑模式控制 ═══
+
+    /** 开启编辑模式：显示所有复选框 */
+    public void setSelectionMode(boolean enabled) {
+        if (this.selectionMode != enabled) {
+            this.selectionMode = enabled;
+            if (!enabled) {
+                selectedIds.clear();
+            }
+            notifyDataSetChanged();
+        }
+    }
+
+    /** 当前是否处于编辑模式 */
+    public boolean isSelectionMode() {
+        return selectionMode;
+    }
+
+    /** 获取所有已选中的笔记 ID */
+    public List<Long> getSelectedIds() {
+        return new ArrayList<>(selectedIds);
+    }
+
+    /** 清除所有选中状态 */
+    public void clearSelection() {
+        if (!selectedIds.isEmpty()) {
+            selectedIds.clear();
+            notifyDataSetChanged();
+        }
+    }
+
+    // ═══ RecyclerView 核心方法 ═══
 
     @NonNull
     @Override
@@ -72,25 +120,54 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         NoteEntity note = notes.get(position);
 
-        // 内容摘要：直接展示原文，TextView 的 maxLines+ellipsize 自动截断
+        // 内容摘要
         holder.tvSummary.setText(note.getContent());
 
-        // 格式化时间戳为可读字符串
+        // 时间戳
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.CHINA);
         holder.tvTime.setText(sdf.format(new Date(note.getTimestamp())));
 
-        // 根据 status 字段显示状态文案
+        // 状态标签
         if (note.getStatus() == STATUS_ARCHIVED) {
             holder.tvStatus.setText("已归档");
         } else {
             holder.tvStatus.setText("普通");
         }
 
-        // 卡片点击：将笔记 ID 回传给外部监听器（跳转详情页）
-        holder.itemView.setOnClickListener(v -> {
-            if (clickListener != null) {
-                clickListener.onNoteClick(note.getId());
+        if (selectionMode) {
+            // ── 编辑模式：显示复选框，点击切换勾选状态 ──
+            holder.cbSelect.setVisibility(View.VISIBLE);
+            holder.cbSelect.setOnCheckedChangeListener(null);
+            holder.cbSelect.setChecked(selectedIds.contains(note.getId()));
+            holder.cbSelect.setOnCheckedChangeListener((btn, checked) -> {
+                if (checked) {
+                    selectedIds.add(note.getId());
+                } else {
+                    selectedIds.remove(note.getId());
+                }
+            });
+
+            // 点击整个卡片也可以切换复选框
+            holder.itemView.setOnClickListener(v -> holder.cbSelect.toggle());
+        } else {
+            // ── 普通模式：隐藏复选框，点击查看详情 ──
+            holder.cbSelect.setVisibility(View.GONE);
+            holder.cbSelect.setOnCheckedChangeListener(null);
+            holder.cbSelect.setChecked(false);
+
+            holder.itemView.setOnClickListener(v -> {
+                if (clickListener != null) {
+                    clickListener.onNoteClick(note.getId());
+                }
+            });
+        }
+
+        // 长按：两种模式都弹出 PopupMenu
+        holder.itemView.setOnLongClickListener(v -> {
+            if (longClickListener != null) {
+                longClickListener.onNoteLongClick(note.getId(), v);
             }
+            return true;
         });
     }
 
@@ -100,16 +177,18 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
     }
 
     /**
-     * ViewHolder：持有 item_note.xml 中的三个控件引用。
+     * ViewHolder：持有 item_note.xml 中的所有控件引用。
      */
     static class ViewHolder extends RecyclerView.ViewHolder {
 
+        final CheckBox cbSelect;
         final TextView tvSummary;
         final TextView tvTime;
         final TextView tvStatus;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
+            cbSelect = itemView.findViewById(R.id.cb_select);
             tvSummary = itemView.findViewById(R.id.tv_summary);
             tvTime = itemView.findViewById(R.id.tv_time);
             tvStatus = itemView.findViewById(R.id.tv_status);
