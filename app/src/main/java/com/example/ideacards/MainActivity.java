@@ -144,6 +144,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * 每次页面从后台回到前台时重新加载笔记。
+     * 场景：用户在归档页编辑/删除笔记后按返回键回到主页，
+     *       onResume 被调用，确保主页列表与数据库保持同步。
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadNotes();
+    }
+
+    /**
      * 在子线程通过 HttpURLConnection 请求一言 API，
      * 解析返回的 JSON 中的 hitokoto 和 from 字段，
      * 拼接为 "句子" —— 来源 格式显示在顶部 tv_quote 中。
