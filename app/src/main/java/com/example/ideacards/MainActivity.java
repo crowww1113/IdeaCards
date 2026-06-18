@@ -80,10 +80,13 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        // 适配系统栏内边距，避免输入区被导航栏遮挡
+        // 适配系统栏 + 键盘内边距，避免输入区被导航栏或软键盘遮挡
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            // 底部取系统栏和键盘中较大的值，确保输入框始终在键盘上方
+            int bottom = Math.max(systemBars.bottom, ime.bottom);
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, bottom);
             return insets;
         });
 

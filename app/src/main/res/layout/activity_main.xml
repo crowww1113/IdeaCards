@@ -81,14 +81,13 @@
         android:scrollbars="none" />
 
     <!-- ═══ 底部悬浮输入胶囊区 ═══ -->
-    <!-- MaterialCardView：胶囊形圆角 28dp、白底、底部悬浮 20dp -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
-        app:cardCornerRadius="28dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="24dp"
         app:cardElevation="2dp"
         app:cardBackgroundColor="@color/card_white"
         app:strokeWidth="0dp">
@@ -97,8 +96,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp">
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp">
 
             <!-- 标签选择区：水平滑动的标签气泡 -->
             <HorizontalScrollView
