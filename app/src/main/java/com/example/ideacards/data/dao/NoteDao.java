@@ -51,4 +51,11 @@ public interface NoteDao {
      */
     @Query("SELECT * FROM notes WHERE tag = :tag ORDER BY timestamp DESC")
     List<NoteEntity> getNotesByTag(String tag);
+
+    /**
+     * 查询最近使用过的、去重的、且不为空的前 5 个标签，按时间倒序排列。
+     * 用于主界面的"最近标签"气泡展示。
+     */
+    @Query("SELECT DISTINCT tag FROM notes WHERE tag IS NOT NULL AND tag != '' ORDER BY timestamp DESC LIMIT 5")
+    List<String> getRecentTags();
 }

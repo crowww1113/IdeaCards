@@ -25,6 +25,9 @@
     <!-- 分割线：极浅暖灰 -->
     <color name="divider_color">#EFECE8</color>
 
+    <!-- 标签高亮色：莫兰迪灰蓝，用于行内标签语法高亮 -->
+    <color name="tag_highlight">#5B8FA8</color>
+
     <!-- 保留原有基础色（系统兼容需要） -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>

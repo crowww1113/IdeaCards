@@ -117,12 +117,26 @@
 
             </HorizontalScrollView>
 
-            <!-- 输入行：输入框 + 发送按钮 -->
+            <!-- 输入行：标签按钮 + 输入框 + 发送按钮 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
+                <!-- 标签按钮：点击向输入框追加 # 号，方便用户手动输入标签 -->
+                <TextView
+                    android:id="@+id/btn_tag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="#"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/tag_highlight"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="6dp"
+                    android:background="?attr/selectableItemBackgroundBorderless" />
 
                 <!-- 输入框：无边框透明背景，与卡片融为一体 -->
                 <EditText
@@ -136,7 +150,7 @@
                     android:textSize="15sp"
                     android:maxLines="3"
                     android:inputType="textMultiLine"
-                    android:paddingHorizontal="16dp"
+                    android:paddingHorizontal="12dp"
                     android:paddingVertical="12dp"
                     android:background="@android:color/transparent" />
 

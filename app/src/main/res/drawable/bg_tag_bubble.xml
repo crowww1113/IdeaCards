@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 标签气泡背景：浅蓝灰底色 + 大圆角胶囊形状 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <!-- 浅蓝灰底色：取 tag_highlight 的 15% 透明度，柔和不抢眼 -->
+    <solid android:color="#1A5B8FA8" />
+    <!-- 胶囊圆角 -->
+    <corners android:radius="20dp" />
+</shape>

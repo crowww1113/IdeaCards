@@ -1,11 +1,17 @@
 package com.example.ideacards;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
@@ -33,11 +39,14 @@ import java.net.URL;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
 /**
  * 主界面：管理笔记列表的展示、新增与数据库交互。
+ * 支持行内标签（#标签）语法高亮，以及最近使用标签的快速插入。
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -46,17 +55,21 @@ public class MainActivity extends AppCompatActivity {
     private EditText etInput;
     private TextView btnSend;
     private TextView btnArchive;
+    private TextView btnTag;
+    private HorizontalScrollView hsvTags;
+    private LinearLayout llTags;
 
     private BubbleAdapter adapter;
     private NoteDao noteDao;
 
-    /** 标签容器，用于动态创建标签气泡 */
-    private LinearLayout llTags;
-    /** 当前选中的标签，null 表示未选中 */
-    private String selectedTag = null;
+    /** 标签匹配正则：# 开头，后跟一个或多个非空白非 # 字符 */
+    private static final Pattern TAG_PATTERN = Pattern.compile("#[^\\s#]+");
 
-    /** 默认标签列表 */
-    private static final String[] DEFAULT_TAGS = {"工作", "生活", "学习"};
+    /** 默认兜底标签（冷启动、数据库无历史标签时使用） */
+    private static final String[] DEFAULT_RECENT_TAGS = {"灵感", "生活", "摘录"};
+
+    /** 标签高亮色：莫兰迪灰蓝 */
+    private int tagHighlightColor;
 
     /** 单线程池，保证数据库操作串行执行，避免并发冲突 */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -77,16 +90,18 @@ public class MainActivity extends AppCompatActivity {
         // 初始化 Room 数据库，获取 DAO
         noteDao = AppDatabase.getInstance(this).noteDao();
 
+        // 预取标签高亮色，避免在 TextWatcher 中重复调用 getColor
+        tagHighlightColor = getColor(R.color.tag_highlight);
+
         // 绑定视图
         tvQuote = findViewById(R.id.tv_quote);
         rvNotes = findViewById(R.id.rv_notes);
         etInput = findViewById(R.id.et_input);
         btnSend = findViewById(R.id.btn_send);
         btnArchive = findViewById(R.id.btn_archive);
+        btnTag = findViewById(R.id.btn_tag);
+        hsvTags = findViewById(R.id.hsv_tags);
         llTags = findViewById(R.id.ll_tags);
-
-        // 初始化标签气泡
-        setupTagBubbles();
 
         // 设置 RecyclerView：纵向列表，新条目从底部堆叠（聊天气泡风格）
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -100,7 +115,16 @@ public class MainActivity extends AppCompatActivity {
         adapter.setOnNoteLongClickListener((noteId, anchorView) ->
                 showNotePopup(noteId, anchorView));
 
-        // 发送按钮点击：校验输入 -> 子线程写入数据库 -> 刷新列表
+        // 标签按钮：点击向输入框追加 # 号，光标移至末尾
+        btnTag.setOnClickListener(v -> {
+            insertAtCursor("#");
+            etInput.requestFocus();
+        });
+
+        // 添加 TextWatcher：实时为 #标签 语法高亮
+        etInput.addTextChangedListener(new TagHighlightWatcher());
+
+        // 发送按钮点击：校验输入 -> 提取标签 -> 子线程写入数据库 -> 刷新列表
         btnSend.setOnClickListener(v -> onSendClicked());
 
         // 归档按钮点击：跳转到归档列表页
@@ -111,20 +135,93 @@ public class MainActivity extends AppCompatActivity {
         // 首次加载：从数据库读取历史笔记
         loadNotes();
 
+        // 异步加载最近使用标签气泡
+        loadRecentTags();
+
         // 请求网络获取每日一言，展示在顶部 TextView
         fetchDailyQuote();
     }
 
     /**
+     * 异步加载最近使用标签，动态生成气泡。
+     * 数据库有历史标签 → 使用历史标签；
+     * 数据库为空 → 兜底使用默认标签（灵感、生活、摘录）。
+     */
+    private void loadRecentTags() {
+        executor.execute(() -> {
+            List<String> tags = noteDao.getRecentTags();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+
+                llTags.removeAllViews();
+
+                // 决定使用哪组标签：数据库有记录则用历史，否则用默认兜底
+                String[] tagArray;
+                if (tags != null && !tags.isEmpty()) {
+                    tagArray = tags.toArray(new String[0]);
+                } else {
+                    tagArray = DEFAULT_RECENT_TAGS;
+                }
+
+                // 动态生成标签气泡
+                for (String tag : tagArray) {
+                    TextView bubble = createTagBubble(tag);
+                    bubble.setOnClickListener(v -> {
+                        // 点击气泡：向输入框追加 #标签名 + 空格，光标移至末尾
+                        insertAtCursor("#" + tag + " ");
+                        etInput.requestFocus();
+                    });
+                    llTags.addView(bubble);
+                }
+
+                // 确保标签区域可见
+                hsvTags.setVisibility(View.VISIBLE);
+            });
+        });
+    }
+
+    /**
+     * 创建单个标签气泡 TextView，使用项目统一的圆角胶囊风格。
+     *
+     * @param tag 标签文字（不含 # 前缀）
+     * @return 配置好的 TextView
+     */
+    private TextView createTagBubble(String tag) {
+        TextView tv = new TextView(this);
+        tv.setText("#" + tag);
+        tv.setTextSize(13);
+        tv.setTextColor(tagHighlightColor);
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(dp(16), dp(6), dp(16), dp(6));
+        // 圆角背景：复用治愈蓝背景，与项目风格统一
+        tv.setBackgroundResource(R.drawable.bg_tag_bubble);
+        return tv;
+    }
+
+    /**
+     * 向 EditText 的当前光标位置插入文本，并将光标移至插入内容之后。
+     *
+     * @param text 要插入的文本
+     */
+    private void insertAtCursor(String text) {
+        int start = etInput.getSelectionStart();
+        Editable editable = etInput.getText();
+        if (editable != null) {
+            editable.insert(start, text);
+        }
+    }
+
+    /**
      * 发送按钮点击处理。
-     * 校验输入内容非空后，在子线程中将笔记写入数据库，
-     * 回到主线程清空输入框并刷新列表。
+     * 1. 从输入文本中用正则提取第一个 #标签 作为 tag 字段
+     * 2. 完整文本保留原样作为 content（不破坏用户排版）
+     * 3. 子线程写入数据库，主线程清空输入框并刷新
      */
     private void onSendClicked() {
-        String content = etInput.getText().toString().trim();
+        String rawText = etInput.getText().toString().trim();
 
         // 空内容拦截，给出提示
-        if (TextUtils.isEmpty(content)) {
+        if (TextUtils.isEmpty(rawText)) {
             Toast.makeText(this, "请输入内容", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -132,22 +229,33 @@ public class MainActivity extends AppCompatActivity {
         // 防快速连点：发送期间禁用按钮
         btnSend.setEnabled(false);
 
-        // 构造笔记实体，status 默认 0（普通笔记），绑定当前选中的标签
+        // 用正则提取第一个 #标签 作为 tag 字段
+        String extractedTag = null;
+        Matcher matcher = TAG_PATTERN.matcher(rawText);
+        if (matcher.find()) {
+            // 取匹配到的第一个标签，去掉 # 前缀存入数据库
+            extractedTag = matcher.group().substring(1);
+        }
+
+        // content 保留完整原样（含 #标签 文字），不破坏用户排版
+        String content = rawText;
+
+        // 构造笔记实体
         NoteEntity note = new NoteEntity(content, System.currentTimeMillis(), 0);
-        note.setTag(selectedTag);
+        note.setTag(extractedTag);
 
         executor.execute(() -> {
-            // 子线程写入数据库（Room 不允许在主线程操作数据库）
+            // 子线程写入数据库
             noteDao.insert(note);
 
-            // 回到主线程更新 UI，先检查 Activity 是否还存活
+            // 回到主线程更新 UI
             runOnUiThread(() -> {
-                if (isFinishing() || isDestroyed()) {
-                    return; // Activity 已销毁，避免操作已释放的视图
-                }
+                if (isFinishing() || isDestroyed()) return;
                 etInput.setText("");
                 btnSend.setEnabled(true);
                 loadNotes();
+                // 发送后刷新最近标签气泡（新标签可能出现了）
+                loadRecentTags();
             });
         });
     }
@@ -159,68 +267,63 @@ public class MainActivity extends AppCompatActivity {
         executor.execute(() -> {
             List<NoteEntity> notes = noteDao.getAllNotes();
             runOnUiThread(() -> {
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
+                if (isFinishing() || isDestroyed()) return;
                 adapter.setData(notes);
             });
         });
     }
 
     /**
-     * 动态创建标签气泡，放入 llTags 容器中。
-     * 点击气泡切换选中状态：选中时高亮（治愈蓝背景），再次点击取消选中。
+     * TextWatcher 实现：实时为输入框中的 #标签 文本设置莫兰迪灰蓝高亮。
+     * 每次文本变化时，清除旧的 ForegroundColorSpan，重新扫描并着色。
      */
-    private void setupTagBubbles() {
-        for (String tag : DEFAULT_TAGS) {
-            TextView bubble = createTagBubble(tag);
-            bubble.setOnClickListener(v -> {
-                if (tag.equals(selectedTag)) {
-                    // 再次点击同一个标签 → 取消选中
-                    selectedTag = null;
-                    refreshTagHighlight();
-                } else {
-                    selectedTag = tag;
-                    refreshTagHighlight();
-                }
-            });
-            llTags.addView(bubble);
+    private class TagHighlightWatcher implements TextWatcher {
+
+        /** 标记是否正在由本 Watcher 修改文本，防止死循环 */
+        private boolean isModifying = false;
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            // 不需要处理
         }
-    }
 
-    /**
-     * 创建单个标签气泡 TextView，使用 MaterialCardView 包裹实现圆角胶囊效果。
-     *
-     * @param tag 标签文字
-     * @return 配置好的 TextView
-     */
-    private TextView createTagBubble(String tag) {
-        TextView tv = new TextView(this);
-        tv.setText("#" + tag);
-        tv.setTextSize(13);
-        tv.setTextColor(getColor(R.color.text_primary));
-        tv.setGravity(Gravity.CENTER);
-        tv.setPadding(dp(16), dp(6), dp(16), dp(6));
-        return tv;
-    }
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // 不需要处理
+        }
 
-    /**
-     * 刷新所有标签气泡的高亮状态。
-     * 选中的标签：治愈蓝背景；未选中：透明背景。
-     */
-    private void refreshTagHighlight() {
-        for (int i = 0; i < llTags.getChildCount(); i++) {
-            View child = llTags.getChildAt(i);
-            if (child instanceof TextView) {
-                TextView tv = (TextView) child;
-                // 从文字中取出标签名（去掉 # 前缀）
-                String tagName = tv.getText().toString().replace("#", "");
-                if (tagName.equals(selectedTag)) {
-                    tv.setBackgroundColor(getColor(R.color.accent_pastel_blue));
-                } else {
-                    tv.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        @Override
+        public void afterTextChanged(Editable editable) {
+            // 如果是本 Watcher 自身触发的修改，跳过避免死循环
+            if (isModifying) return;
+
+            isModifying = true;
+
+            // 第一步：清除所有旧的 ForegroundColorSpan（标签高亮色）
+            ForegroundColorSpan[] oldSpans = editable.getSpans(0, editable.length(), ForegroundColorSpan.class);
+            for (ForegroundColorSpan span : oldSpans) {
+                // 只清除标签高亮色的 span，保留其他可能存在的颜色
+                if (span.getForegroundColor() == tagHighlightColor) {
+                    editable.removeSpan(span);
                 }
             }
+
+            // 第二步：用正则重新扫描，为每个 #标签 设置高亮
+            String text = editable.toString();
+            Matcher matcher = TAG_PATTERN.matcher(text);
+            while (matcher.find()) {
+                int matchStart = matcher.start();
+                int matchEnd = matcher.end();
+                // 设置莫兰迪灰蓝前景色
+                editable.setSpan(
+                        new ForegroundColorSpan(tagHighlightColor),
+                        matchStart,
+                        matchEnd,
+                        SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE
+                );
+            }
+
+            isModifying = false;
         }
     }
 
@@ -232,9 +335,6 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 在长按的气泡卡片旁边弹出浮动菜单。
      * "编辑卡片"跳转详情页，"彻底删除"弹出二次确认后直接删除。
-     *
-     * @param noteId    笔记 ID
-     * @param anchorView 被长按的 View，PopupMenu 锚定在此 View 旁弹出
      */
     private void showNotePopup(long noteId, View anchorView) {
         PopupMenu popup = new PopupMenu(this, anchorView);
@@ -243,13 +343,11 @@ public class MainActivity extends AppCompatActivity {
 
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == 1) {
-                // 编辑：跳转到详情页
                 Intent intent = new Intent(this, DetailActivity.class);
                 intent.putExtra(DetailActivity.EXTRA_NOTE_ID, noteId);
                 startActivity(intent);
                 return true;
             } else if (item.getItemId() == 2) {
-                // 删除：二次确认后执行
                 confirmDelete(noteId);
                 return true;
             }
@@ -285,14 +383,12 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    /**
-     * 场景：用户在归档页编辑/删除笔记后按返回键回到主页，
-     *       onResume 被调用，确保主页列表与数据库保持同步。
-     */
     @Override
     protected void onResume() {
         super.onResume();
         loadNotes();
+        // 从归档页返回后，也可能带了新标签，刷新一下
+        loadRecentTags();
     }
 
     /**
@@ -304,14 +400,12 @@ public class MainActivity extends AppCompatActivity {
         executor.execute(() -> {
             HttpURLConnection connection = null;
             try {
-                // 请求一言 API，参数 c=d/i/k/e 混合获取不同类型句子
                 URL url = new URL("https://v1.hitokoto.cn/?c=d&c=i&c=k&c=e");
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(8000);  // 连接超时 8 秒
-                connection.setReadTimeout(8000);     // 读取超时 8 秒
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(8000);
 
-                // 读取响应流
                 BufferedReader reader = new BufferedReader(
                         new InputStreamReader(connection.getInputStream(), "UTF-8"));
                 StringBuilder response = new StringBuilder();
@@ -321,31 +415,23 @@ public class MainActivity extends AppCompatActivity {
                 }
                 reader.close();
 
-                // 解析 JSON
                 JSONObject json = new JSONObject(response.toString());
                 String hitokoto = json.optString("hitokoto", "");
                 String from = json.optString("from", "");
 
-                // 拼接展示文本
                 StringBuilder quoteText = new StringBuilder(hitokoto);
                 if (!from.isEmpty()) {
                     quoteText.append(" —— ").append(from);
                 }
 
-                // 回到主线程设置 TextView
                 runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed()) {
-                        return;
-                    }
+                    if (isFinishing() || isDestroyed()) return;
                     tvQuote.setText(quoteText.toString());
                 });
 
             } catch (Exception e) {
-                // 网络异常或解析失败时显示默认文案
                 runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed()) {
-                        return;
-                    }
+                    if (isFinishing() || isDestroyed()) return;
                     tvQuote.setText("今日灵感获取失败");
                 });
             } finally {
@@ -359,7 +445,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Activity 销毁时关闭线程池，避免资源泄漏
         executor.shutdownNow();
     }
 }
