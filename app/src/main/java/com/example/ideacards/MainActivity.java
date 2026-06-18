@@ -118,8 +118,13 @@ public class MainActivity extends AppCompatActivity {
         adapter.setOnNoteLongClickListener((noteId, anchorView) ->
                 showNotePopup(noteId, anchorView));
 
-        // 标签按钮：点击向输入框追加 # 号，光标移至末尾
+        // 标签按钮：切换最近标签气泡的显隐，同时向输入框追加 #
         btnTag.setOnClickListener(v -> {
+            if (hsvTags.getVisibility() == View.VISIBLE) {
+                hsvTags.setVisibility(View.GONE);
+            } else {
+                hsvTags.setVisibility(View.VISIBLE);
+            }
             insertAtCursor("#");
             etInput.requestFocus();
         });
@@ -170,15 +175,15 @@ public class MainActivity extends AppCompatActivity {
                 for (String tag : tagArray) {
                     TextView bubble = createTagBubble(tag);
                     bubble.setOnClickListener(v -> {
-                        // 点击气泡：向输入框追加 #标签名 + 空格，光标移至末尾
+                        // 点击气泡：向输入框追加 #标签名 + 空格，光标移至末尾，收起标签栏
                         insertAtCursor("#" + tag + " ");
+                        hsvTags.setVisibility(View.GONE);
                         etInput.requestFocus();
                     });
                     llTags.addView(bubble);
                 }
 
-                // 确保标签区域可见
-                hsvTags.setVisibility(View.VISIBLE);
+                // 标签区域的显隐由 btnTag 点击控制，此处不自动显示
             });
         });
     }
