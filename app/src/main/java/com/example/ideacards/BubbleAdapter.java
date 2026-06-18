@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * 主页聊天气泡适配器：渲染笔记为气泡列表。
@@ -24,6 +25,9 @@ import java.util.Locale;
 public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder> {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm";
+
+    /** 标签匹配正则：与 MainActivity 保持一致，用于剔除内容中的行内标签 */
+    private static final Pattern TAG_PATTERN = Pattern.compile("#[^\\s#]+");
 
     private final LayoutInflater inflater;
     private final List<NoteEntity> notes = new ArrayList<>();
@@ -63,8 +67,10 @@ public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         NoteEntity note = notes.get(position);
 
-        // 设置笔记内容
-        holder.tvContent.setText(note.getContent());
+        // 设置笔记内容：剔除行内 #标签，只显示纯正文
+        // （兼容旧数据：修复前创建的笔记 content 中可能包含标签文字）
+        String displayContent = stripTags(note.getContent());
+        holder.tvContent.setText(displayContent);
 
         // 格式化时间戳
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.CHINA);
@@ -77,6 +83,15 @@ public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder
             }
             return true;
         });
+    }
+
+    /**
+     * 剔除文本中的所有行内标签（#xxx），返回纯正文。
+     * 用于兼容修复前创建的旧笔记，避免标签文字显示在气泡中。
+     */
+    private String stripTags(String text) {
+        if (text == null) return "";
+        return TAG_PATTERN.matcher(text).replaceAll("").replaceAll("\\s+", " ").trim();
     }
 
     @Override

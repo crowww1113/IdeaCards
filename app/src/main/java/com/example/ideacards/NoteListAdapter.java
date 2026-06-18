@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 归档页 RecyclerView 适配器：
@@ -29,6 +30,9 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm";
     private static final int STATUS_NORMAL = 0;
     private static final int STATUS_ARCHIVED = 1;
+
+    /** 标签匹配正则：与 MainActivity / BubbleAdapter 保持一致 */
+    private static final Pattern TAG_PATTERN = Pattern.compile("#[^\\s#]+");
 
     private final LayoutInflater inflater;
     private final List<NoteEntity> notes = new ArrayList<>();
@@ -120,8 +124,8 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         NoteEntity note = notes.get(position);
 
-        // 内容摘要
-        holder.tvSummary.setText(note.getContent());
+        // 内容摘要：剔除行内 #标签，只显示纯正文
+        holder.tvSummary.setText(stripTags(note.getContent()));
 
         // 时间戳
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.CHINA);
@@ -175,6 +179,15 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
     @Override
     public int getItemCount() {
         return notes.size();
+    }
+
+    /**
+     * 剔除文本中的所有行内标签（#xxx），返回纯正文。
+     * 与 BubbleAdapter.stripTags 逻辑一致。
+     */
+    private String stripTags(String text) {
+        if (text == null) return "";
+        return TAG_PATTERN.matcher(text).replaceAll("").replaceAll("\\s+", " ").trim();
     }
 
     /**

@@ -68,8 +68,8 @@ public class ArchiveActivity extends AppCompatActivity {
     private LinearLayout llFilterTags;
     /** 当前筛选标签，null 表示显示全部 */
     private String currentFilterTag = null;
-    /** 默认标签列表（与主页一致） */
-    private static final String[] DEFAULT_TAGS = {"工作", "生活", "学习"};
+    /** 默认兜底标签（数据库无历史标签时使用） */
+    private static final String[] DEFAULT_FILTER_TAGS = {"灵感", "生活", "摘录"};
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -129,6 +129,15 @@ public class ArchiveActivity extends AppCompatActivity {
         });
 
         loadNotes();
+    }
+
+    /**
+     * 从详情页返回后，刷新标签筛选栏（用户可能新增/修改了标签）和笔记列表。
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadFilterTagsFromDb();
     }
 
     // ═══════════════════════════════════════
@@ -421,12 +430,12 @@ public class ArchiveActivity extends AppCompatActivity {
     // ═══════════════════════════════════════
 
     /**
-     * 动态创建标签过滤栏：包含"全部"及各个默认标签。
-     * 点击标签后查询对应数据并刷新列表。
+     * 初始化标签过滤栏：先添加"全部"按钮，再异步加载数据库中的历史标签。
+     * 数据库无标签时使用默认兜底标签（灵感、生活、摘录）。
      */
     private void setupFilterTags() {
-        // "全部"标签
-        TextView allBubble = createFilterBubble("全部");
+        // "全部"标签始终在首位
+        TextView allBubble = createFilterBubble("全部", false);
         allBubble.setOnClickListener(v -> {
             currentFilterTag = null;
             refreshFilterHighlight();
@@ -434,29 +443,72 @@ public class ArchiveActivity extends AppCompatActivity {
         });
         llFilterTags.addView(allBubble);
 
-        // 各个默认标签
-        for (String tag : DEFAULT_TAGS) {
-            TextView bubble = createFilterBubble("#" + tag);
-            bubble.setOnClickListener(v -> {
-                currentFilterTag = tag;
-                refreshFilterHighlight();
-                loadNotesByTag(tag);
-            });
-            llFilterTags.addView(bubble);
-        }
+        // 异步加载数据库中的去重标签
+        loadFilterTagsFromDb();
+    }
 
-        // 默认高亮"全部"
-        refreshFilterHighlight();
+    /**
+     * 从数据库异步读取所有去重标签，动态生成筛选气泡。
+     * 如果数据库无标签，使用默认兜底标签。
+     * 如果当前筛选标签在新列表中仍存在，保持选中状态。
+     */
+    private void loadFilterTagsFromDb() {
+        executor.execute(() -> {
+            List<String> tags = noteDao.getAllDistinctTags();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+
+                // 移除"全部"以外的所有旧气泡
+                while (llFilterTags.getChildCount() > 1) {
+                    llFilterTags.removeViewAt(llFilterTags.getChildCount() - 1);
+                }
+
+                // 决定使用哪组标签
+                String[] tagArray;
+                if (tags != null && !tags.isEmpty()) {
+                    tagArray = tags.toArray(new String[0]);
+                } else {
+                    tagArray = DEFAULT_FILTER_TAGS;
+                }
+
+                // 动态生成筛选气泡
+                for (String tag : tagArray) {
+                    TextView bubble = createFilterBubble("#" + tag, true);
+                    bubble.setOnClickListener(v -> {
+                        currentFilterTag = tag;
+                        refreshFilterHighlight();
+                        loadNotesByTag(tag);
+                    });
+                    llFilterTags.addView(bubble);
+                }
+
+                // 如果当前筛选标签已不在列表中，重置为"全部"
+                if (currentFilterTag != null) {
+                    boolean found = false;
+                    for (String t : tagArray) {
+                        if (t.equals(currentFilterTag)) { found = true; break; }
+                    }
+                    if (!found) {
+                        currentFilterTag = null;
+                    }
+                }
+
+                refreshFilterHighlight();
+            });
+        });
     }
 
     /**
      * 创建过滤栏中的单个标签 TextView。
+     *
+     * @param text   显示文字
+     * @param isTag  true=标签气泡使用标签高亮色，false="全部"使用主文本色
      */
-    private TextView createFilterBubble(String text) {
+    private TextView createFilterBubble(String text, boolean isTag) {
         TextView tv = new TextView(this);
         tv.setText(text);
         tv.setTextSize(13);
-        tv.setTextColor(getColor(R.color.text_primary));
+        tv.setTextColor(isTag ? getColor(R.color.tag_highlight) : getColor(R.color.text_primary));
         tv.setGravity(Gravity.CENTER);
         tv.setPadding(dp(16), dp(6), dp(16), dp(6));
         return tv;
@@ -464,6 +516,7 @@ public class ArchiveActivity extends AppCompatActivity {
 
     /**
      * 刷新过滤栏的高亮状态。
+     * 选中的标签：治愈蓝背景；未选中：透明背景。
      */
     private void refreshFilterHighlight() {
         for (int i = 0; i < llFilterTags.getChildCount(); i++) {
@@ -478,9 +531,17 @@ public class ArchiveActivity extends AppCompatActivity {
                 } else if (currentFilterTag != null && text.equals("#" + currentFilterTag)) {
                     isSelected = true;
                 }
-                tv.setBackgroundColor(isSelected
-                        ? getColor(R.color.accent_pastel_blue)
-                        : android.graphics.Color.TRANSPARENT);
+                if (isSelected) {
+                    tv.setBackgroundColor(getColor(R.color.accent_pastel_blue));
+                } else {
+                    // 标签气泡使用浅蓝灰底色，"全部"使用透明
+                    if (text.equals("全部")) {
+                        tv.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                    } else {
+                        // 复用标签气泡背景 drawable
+                        tv.setBackgroundResource(R.drawable.bg_tag_bubble);
+                    }
+                }
             }
         }
     }

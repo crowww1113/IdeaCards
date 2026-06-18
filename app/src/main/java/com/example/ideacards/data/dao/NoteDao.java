@@ -58,4 +58,12 @@ public interface NoteDao {
      */
     @Query("SELECT DISTINCT tag FROM notes WHERE tag IS NOT NULL AND tag != '' ORDER BY timestamp DESC LIMIT 5")
     List<String> getRecentTags();
+
+    /**
+     * 查询所有去重的、不为空的标签，用于归档页的标签筛选栏。
+     * 不限数量，确保用户新增的标签都能出现在筛选栏中。
+     * 按各标签最近使用时间倒序排列。
+     */
+    @Query("SELECT tag FROM notes WHERE tag IS NOT NULL AND tag != '' GROUP BY tag ORDER BY MAX(timestamp) DESC")
+    List<String> getAllDistinctTags();
 }

@@ -214,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 发送按钮点击处理。
      * 1. 从输入文本中用正则提取第一个 #标签 作为 tag 字段
-     * 2. 完整文本保留原样作为 content（不破坏用户排版）
+     * 2. 从正文中剔除该标签文字，只保留纯笔记内容存入 content
      * 3. 子线程写入数据库，主线程清空输入框并刷新
      */
     private void onSendClicked() {
@@ -231,14 +231,24 @@ public class MainActivity extends AppCompatActivity {
 
         // 用正则提取第一个 #标签 作为 tag 字段
         String extractedTag = null;
+        String content = rawText;
         Matcher matcher = TAG_PATTERN.matcher(rawText);
         if (matcher.find()) {
             // 取匹配到的第一个标签，去掉 # 前缀存入数据库
             extractedTag = matcher.group().substring(1);
+            // 从正文中剔除该标签文字，清理多余空格
+            // 注意：不能复用同一个 Matcher 调 replaceFirst，
+            // find()/group() 后 Matcher 内部状态会干扰替换结果，
+            // 必须用一个新的 Matcher 来执行替换。
+            content = TAG_PATTERN.matcher(rawText).replaceFirst("").trim();
         }
 
-        // content 保留完整原样（含 #标签 文字），不破坏用户排版
-        String content = rawText;
+        // 剔除标签后如果正文为空，给出提示
+        if (TextUtils.isEmpty(content)) {
+            Toast.makeText(this, "请输入正文内容", Toast.LENGTH_SHORT).show();
+            btnSend.setEnabled(true);
+            return;
+        }
 
         // 构造笔记实体
         NoteEntity note = new NoteEntity(content, System.currentTimeMillis(), 0);
