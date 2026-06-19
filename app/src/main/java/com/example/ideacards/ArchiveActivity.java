@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 
 /**
  * 归档页面：展示笔记列表，支持返回、提醒、导出 Markdown、
@@ -70,6 +71,8 @@ public class ArchiveActivity extends AppCompatActivity {
     private String currentFilterTag = null;
     /** 默认兜底标签（数据库无历史标签时使用） */
     private static final String[] DEFAULT_FILTER_TAGS = {"灵感", "生活", "摘录"};
+    /** 标签匹配正则：用于导出时剔除 content 中的行内标签 */
+    private static final Pattern TAG_PATTERN = Pattern.compile("#[^\\s#]+");
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -382,8 +385,15 @@ public class ArchiveActivity extends AppCompatActivity {
             for (NoteEntity note : notes) {
                 md.append("---\n\n");
                 String noteTime = sdf.format(new Date(note.getTimestamp()));
-                md.append("**[").append(noteTime).append("]**\n");
-                md.append(note.getContent()).append("\n\n");
+                // 时间戳 + 标签徽章（如有）
+                md.append("**[").append(noteTime).append("]**");
+                if (note.getTag() != null && !note.getTag().isEmpty()) {
+                    md.append("　`#").append(note.getTag()).append("`");
+                }
+                md.append("\n");
+                // 正文：剔除残留的行内标签，输出纯内容
+                String cleanContent = stripTags(note.getContent());
+                md.append(cleanContent).append("\n\n");
             }
             md.append("---\n");
 
@@ -562,6 +572,15 @@ public class ArchiveActivity extends AppCompatActivity {
     /** dp 转 px 工具方法 */
     private int dp(int dp) {
         return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    /**
+     * 剔除文本中的所有行内标签（#xxx），返回纯正文。
+     * 用于导出 Markdown 时清理旧数据中残留的标签文字。
+     */
+    private String stripTags(String text) {
+        if (text == null) return "";
+        return TAG_PATTERN.matcher(text).replaceAll("").replaceAll("\\s+", " ").trim();
     }
 
     // ═══════════════════════════════════════
