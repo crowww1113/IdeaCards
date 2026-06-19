@@ -1,4 +1,4 @@
-package com.example.ideacards.data.dao;
+package com.xiejinyi.ideacards.data.dao;
 
 import androidx.room.Dao;
 import androidx.room.Delete;
@@ -8,7 +8,7 @@ import androidx.room.Update;
 
 import android.database.Cursor;
 
-import com.example.ideacards.data.entity.NoteEntity;
+import com.xiejinyi.ideacards.data.entity.NoteEntity;
 
 import java.util.List;
 

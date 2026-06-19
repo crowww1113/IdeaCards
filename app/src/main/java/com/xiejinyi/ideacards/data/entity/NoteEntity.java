@@ -1,4 +1,4 @@
-package com.example.ideacards.data.entity;
+package com.xiejinyi.ideacards.data.entity;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;

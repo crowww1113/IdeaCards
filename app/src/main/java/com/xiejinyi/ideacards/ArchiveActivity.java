@@ -1,4 +1,4 @@
-package com.example.ideacards;
+package com.xiejinyi.ideacards;
 
 import android.Manifest;
 import android.app.NotificationChannel;
@@ -34,9 +34,9 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.ideacards.data.db.AppDatabase;
-import com.example.ideacards.data.dao.NoteDao;
-import com.example.ideacards.data.entity.NoteEntity;
+import com.xiejinyi.ideacards.data.db.AppDatabase;
+import com.xiejinyi.ideacards.data.dao.NoteDao;
+import com.xiejinyi.ideacards.data.entity.NoteEntity;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import java.io.File;
@@ -578,7 +578,7 @@ public class ArchiveActivity extends AppCompatActivity {
                 writer.write(markdown);
                 writer.close();
                 fileUri = FileProvider.getUriForFile(
-                        this, "com.example.ideacards.fileprovider", mdFile);
+                        this, "com.xiejinyi.ideacards.fileprovider", mdFile);
             } catch (IOException e) {
                 e.printStackTrace();
             }

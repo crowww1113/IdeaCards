@@ -1,10 +1,10 @@
-package com.example.ideacards.data.provider;
+package com.xiejinyi.ideacards.data.provider;
 
 import android.net.Uri;
 
 public final class NoteContract {
 
-    public static final String AUTHORITY = "com.example.ideacards.provider";
+    public static final String AUTHORITY = "com.xiejinyi.ideacards.provider";
 
     public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY + "/notes");
 

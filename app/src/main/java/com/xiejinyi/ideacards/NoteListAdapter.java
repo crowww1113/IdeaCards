@@ -1,4 +1,4 @@
-package com.example.ideacards;
+package com.xiejinyi.ideacards;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -10,7 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.ideacards.data.entity.NoteEntity;
+import com.xiejinyi.ideacards.data.entity.NoteEntity;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

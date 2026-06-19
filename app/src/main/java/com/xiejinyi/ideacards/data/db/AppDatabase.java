@@ -1,4 +1,4 @@
-package com.example.ideacards.data.db;
+package com.xiejinyi.ideacards.data.db;
 
 import android.content.Context;
 
@@ -6,8 +6,8 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-import com.example.ideacards.data.dao.NoteDao;
-import com.example.ideacards.data.entity.NoteEntity;
+import com.xiejinyi.ideacards.data.dao.NoteDao;
+import com.xiejinyi.ideacards.data.entity.NoteEntity;
 
 @Database(entities = {NoteEntity.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {

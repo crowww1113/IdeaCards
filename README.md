@@ -40,7 +40,7 @@
 ## 📂 项目结构描述
 
 ```text
-com.example.ideacards
+com.xiejinyi.ideacards
 ├── data
 │   ├── entity      # Room 数据库实体类 (NoteEntity)
 │   ├── dao         # 数据库访问接口 (NoteDao)

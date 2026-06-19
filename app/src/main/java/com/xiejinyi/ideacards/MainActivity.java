@@ -1,4 +1,4 @@
-package com.example.ideacards;
+package com.xiejinyi.ideacards;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -28,9 +28,9 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.ideacards.data.db.AppDatabase;
-import com.example.ideacards.data.dao.NoteDao;
-import com.example.ideacards.data.entity.NoteEntity;
+import com.xiejinyi.ideacards.data.db.AppDatabase;
+import com.xiejinyi.ideacards.data.dao.NoteDao;
+import com.xiejinyi.ideacards.data.entity.NoteEntity;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

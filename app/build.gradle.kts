@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ideacards"
+    namespace = "com.xiejinyi.ideacards"
     compileSdk = 34
 
     defaultConfig {

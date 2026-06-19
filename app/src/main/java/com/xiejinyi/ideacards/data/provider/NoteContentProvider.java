@@ -1,4 +1,4 @@
-package com.example.ideacards.data.provider;
+package com.xiejinyi.ideacards.data.provider;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
@@ -6,8 +6,8 @@ import android.content.UriMatcher;
 import android.database.Cursor;
 import android.net.Uri;
 
-import com.example.ideacards.data.db.AppDatabase;
-import com.example.ideacards.data.entity.NoteEntity;
+import com.xiejinyi.ideacards.data.db.AppDatabase;
+import com.xiejinyi.ideacards.data.entity.NoteEntity;
 
 public class NoteContentProvider extends ContentProvider {
 

@@ -1,4 +1,4 @@
-package com.example.ideacards;
+package com.xiejinyi.ideacards;
 
 import org.junit.Test;
 

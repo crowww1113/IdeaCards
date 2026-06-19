@@ -1,4 +1,4 @@
-package com.example.ideacards;
+package com.xiejinyi.ideacards;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -15,9 +15,9 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.ideacards.data.dao.NoteDao;
-import com.example.ideacards.data.db.AppDatabase;
-import com.example.ideacards.data.entity.NoteEntity;
+import com.xiejinyi.ideacards.data.dao.NoteDao;
+import com.xiejinyi.ideacards.data.db.AppDatabase;
+import com.xiejinyi.ideacards.data.entity.NoteEntity;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
