@@ -116,7 +116,7 @@
                 android:id="@+id/et_detail_tag"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="输入标签（如：工作、生活）"
+                android:hint="输入标签"
                 android:textColorHint="@color/text_secondary"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"

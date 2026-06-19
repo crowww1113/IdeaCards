@@ -41,7 +41,7 @@
             android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="导出与知识同步"
+            android:text="导出与同步"
             android:textColor="@color/text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -103,8 +103,7 @@
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             android:contentDescription="Google 账户"
-                            android:src="@android:drawable/ic_menu_myplaces"
-                            android:tint="@color/tag_highlight" />
+                            android:src="@drawable/ic_google" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -159,91 +158,11 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ── 标签筛选区 ── -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/card_white"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <!-- 筛选区标题行：标题文字 + 全选 Chip -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="筛选导出标签"
-                            android:textColor="@color/text_primary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <!-- 全选 Chip：独立于 ChipGroup，用于全选/反选控制 -->
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_select_all"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="全选"
-                            android:textSize="12sp"
-                            app:checkedIconVisible="true"
-                            app:chipBackgroundColor="@color/chip_bg_state"
-                            app:chipCornerRadius="20dp"
-                            app:chipMinHeight="32dp" />
-
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:background="@color/divider_color" />
-
-                    <!-- 标签 ChipGroup：动态填充，支持多选 -->
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chip_group_tags"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:chipSpacingHorizontal="8dp"
-                        app:chipSpacingVertical="6dp"
-                        app:singleLine="false"
-                        app:singleSelection="false" />
-
-                    <!-- 无标签时的空状态提示 -->
-                    <TextView
-                        android:id="@+id/tv_no_tags"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:paddingVertical="16dp"
-                        android:text="暂无标签，请先为笔记添加标签"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp"
-                        android:visibility="gone" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
             <!-- ── Obsidian 本地库连接卡片 ── -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
                 app:cardBackgroundColor="@color/card_white"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
@@ -268,8 +187,7 @@
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             android:contentDescription="Obsidian"
-                            android:src="@android:drawable/ic_menu_save"
-                            android:tint="@color/tag_highlight" />
+                            android:src="@drawable/ic_obsidian" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -320,6 +238,87 @@
                             android:textSize="13sp" />
 
                     </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── 标签筛选区 ── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/card_white"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="12dp">
+
+                    <!-- 筛选区标题行：标题文字 + 全选 Chip -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="按标签导出"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <!-- 全选 Chip：独立于 ChipGroup，用于全选/反选控制 -->
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_select_all"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="全选"
+                            android:textSize="12sp"
+                            app:checkedIconVisible="true"
+                            app:chipBackgroundColor="@color/chip_bg_state"
+                            app:chipCornerRadius="20dp"
+                            app:chipMinHeight="32dp" />
+
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@color/divider_color" />
+
+                    <!-- 标签 ChipGroup：动态填充，支持多选 -->
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_tags"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:chipSpacingHorizontal="8dp"
+                        app:chipSpacingVertical="6dp"
+                        app:singleLine="false"
+                        app:singleSelection="false" />
+
+                    <!-- 无标签时的空状态提示 -->
+                    <TextView
+                        android:id="@+id/tv_no_tags"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:paddingVertical="12dp"
+                        android:text="暂无标签，请先为笔记添加标签"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
 
                 </LinearLayout>
 
