@@ -1,6 +1,7 @@
 package com.xiejinyi.ideacards;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -10,6 +11,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -28,6 +31,8 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException;
 import com.google.api.services.drive.DriveScopes;
+
+import androidx.core.content.FileProvider;
 
 import com.xiejinyi.ideacards.data.dao.NoteDao;
 import com.xiejinyi.ideacards.data.db.AppDatabase;
@@ -74,6 +79,14 @@ public class ExportActivity extends AppCompatActivity {
     private MaterialCardView cardSyncButton;
     private TextView tvSyncButton;
     private ProgressBar progressSyncOverlay;
+    // Obsidian 连接卡片
+    private TextView tvObsidianStatus;
+    private TextView tvObsidianHint;
+    private MaterialCardView btnObsidianBind;
+    private TextView tvObsidianBtn;
+    // 底部双按钮
+    private MaterialCardView cardExportButton;
+    private TextView tvExportButton;
 
     // ── 数据与线程 ──
     private NoteDao noteDao;
@@ -86,6 +99,19 @@ public class ExportActivity extends AppCompatActivity {
     private String pendingMarkdown;
     /** 上次写入的临时文件路径（授权回调后重试用） */
     private String pendingFilePath;
+
+    // ── Obsidian SAF 授权 ──
+    private ObsidianSyncManager obsidianManager;
+
+    /** Obsidian 文件夹选择器回调（OpenDocumentTree 兼容 registerForActivityResult） */
+    private final ActivityResultLauncher<Uri> obsidianTreeLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), uri -> {
+                if (uri != null) {
+                    obsidianManager.saveTreeUri(this, uri);
+                    Toast.makeText(this, "已成功绑定本地库", Toast.LENGTH_SHORT).show();
+                    updateObsidianUI();
+                }
+            });
 
     // ═══════════════════════════════════════
     //  生命周期
@@ -107,6 +133,7 @@ public class ExportActivity extends AppCompatActivity {
 
         noteDao = AppDatabase.getInstance(this).noteDao();
         driveManager = GoogleDriveManager.getInstance();
+        obsidianManager = ObsidianSyncManager.getInstance();
 
         // ── 绑定视图 ──
         ImageButton btnBack = findViewById(R.id.btn_export_back);
@@ -119,6 +146,12 @@ public class ExportActivity extends AppCompatActivity {
         cardSyncButton = findViewById(R.id.card_sync_button);
         tvSyncButton = findViewById(R.id.tv_sync_button);
         progressSyncOverlay = findViewById(R.id.progress_sync_overlay);
+        tvObsidianStatus = findViewById(R.id.tv_obsidian_status);
+        tvObsidianHint = findViewById(R.id.tv_obsidian_hint);
+        btnObsidianBind = findViewById(R.id.btn_obsidian_bind);
+        tvObsidianBtn = findViewById(R.id.tv_obsidian_btn);
+        cardExportButton = findViewById(R.id.card_export_button);
+        tvExportButton = findViewById(R.id.tv_export_button);
 
         // 返回按钮
         btnBack.setOnClickListener(v -> finish());
@@ -129,9 +162,24 @@ public class ExportActivity extends AppCompatActivity {
         // 同步按钮
         cardSyncButton.setOnClickListener(v -> onSyncClicked());
 
-        // 冷启动：加载标签 + 刷新账户卡片
+        // 导出文件按钮
+        cardExportButton.setOnClickListener(v -> onExportClicked());
+
+        // Obsidian 绑定按钮：已绑定时解除，未绑定时启动文件夹选择器
+        btnObsidianBind.setOnClickListener(v -> {
+            if (obsidianManager.isConnected(this)) {
+                obsidianManager.disconnect(this);
+                updateObsidianUI();
+                Toast.makeText(this, "已解除 Obsidian 绑定", Toast.LENGTH_SHORT).show();
+            } else {
+                obsidianTreeLauncher.launch(null);
+            }
+        });
+
+        // 冷启动：加载标签 + 刷新账户卡片 + 刷新 Obsidian 状态
         loadTags();
         updateAccountUI();
+        updateObsidianUI();
     }
 
     @Override
@@ -305,6 +353,25 @@ public class ExportActivity extends AppCompatActivity {
         }
     }
 
+    // ═══════════════════════════════════════
+    //  Obsidian 本地库状态
+    // ═══════════════════════════════════════
+
+    /**
+     * 刷新 Obsidian 连接卡片 UI：已绑定显示路径和"已绑定"按钮，未绑定显示提示和"绑定"按钮。
+     */
+    private void updateObsidianUI() {
+        if (obsidianManager.isConnected(this)) {
+            tvObsidianStatus.setText("Obsidian 库已绑定");
+            tvObsidianHint.setText("笔记保存时将自动写入");
+            tvObsidianBtn.setText("已绑定");
+        } else {
+            tvObsidianStatus.setText("连接 Obsidian 库");
+            tvObsidianHint.setText("绑定后笔记将自动同步写入");
+            tvObsidianBtn.setText("绑定");
+        }
+    }
+
     /**
      * 启动 Google 登录流程。
      * 仅在有残留登录状态时先 signOut，避免首次登录的无意义网络开销。
@@ -363,20 +430,80 @@ public class ExportActivity extends AppCompatActivity {
         buildMarkdownAndSync();
     }
 
+    // ═══════════════════════════════════════
+    //  导出按钮点击 → 生成文件 → 系统分享
+    // ═══════════════════════════════════════
+
+    /** 导出按钮点击入口：子线程拼接 Markdown，写入临时文件后弹出系统分享面板 */
+    private void onExportClicked() {
+        cardExportButton.setEnabled(false);
+        executor.execute(() -> {
+            List<String> selectedTags = getSelectedTags();
+            List<NoteEntity> notes;
+            if (selectedTags.isEmpty()) {
+                notes = noteDao.getAllNotes();
+            } else {
+                notes = noteDao.getNotesByTags(selectedTags);
+            }
+
+            if (notes.isEmpty()) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    Toast.makeText(this, "没有匹配的笔记可导出", Toast.LENGTH_SHORT).show();
+                    cardExportButton.setEnabled(true);
+                });
+                return;
+            }
+
+            // 拼接 Markdown（与同步共用格式）
+            String markdown = buildMarkdownString(notes, selectedTags);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm", Locale.CHINA);
+            String timestamp = sdf.format(new Date());
+
+            // 写入临时文件并通过 FileProvider 分享
+            try {
+                File exportDir = new File(getCacheDir(), "export");
+                if (!exportDir.exists()) exportDir.mkdirs();
+                String fileName = "IdeaCards_" + timestamp + ".md";
+                File mdFile = new File(exportDir, fileName);
+                FileWriter writer = new FileWriter(mdFile);
+                writer.write(markdown);
+                writer.close();
+
+                Uri shareUri = FileProvider.getUriForFile(
+                        this, "com.xiejinyi.ideacards.fileprovider", mdFile);
+
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    cardExportButton.setEnabled(true);
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.setType("text/markdown");
+                    shareIntent.putExtra(Intent.EXTRA_STREAM, shareUri);
+                    shareIntent.putExtra(Intent.EXTRA_SUBJECT, "IdeaCards 导出");
+                    shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(shareIntent, "导出笔记"));
+                });
+            } catch (IOException e) {
+                Log.e(TAG, "导出文件创建失败", e);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    cardExportButton.setEnabled(true);
+                    Toast.makeText(this, "导出失败", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
     /**
-     * 子线程：按用户选中的标签过滤笔记，拼接标准化 Markdown，写入临时文件后触发上传。
+     * 子线程：按用户选中的标签过滤笔记，拼接 Markdown，写入临时文件后触发 Drive 上传。
      */
     private void buildMarkdownAndSync() {
         executor.execute(() -> {
-            // 收集用户选中的标签
             List<String> selectedTags = getSelectedTags();
-
             List<NoteEntity> notes;
             if (selectedTags.isEmpty()) {
-                // 未选择任何标签 → 导出全部笔记
                 notes = noteDao.getAllNotes();
             } else {
-                // 按标签组合查询（OR 匹配）
                 notes = noteDao.getNotesByTags(selectedTags);
             }
 
@@ -389,49 +516,11 @@ public class ExportActivity extends AppCompatActivity {
                 return;
             }
 
-            // ── 拼接 Markdown ──
-            StringBuilder md = new StringBuilder();
+            String markdown = buildMarkdownString(notes, selectedTags);
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA);
             String exportTime = sdf.format(new Date());
 
-            md.append("# IdeaCards 导出笔记\n\n");
-            md.append("> 导出时间：").append(exportTime).append("  \n");
-
-            // 记录筛选标签信息
-            if (!selectedTags.isEmpty()) {
-                md.append("> 筛选标签：");
-                for (int i = 0; i < selectedTags.size(); i++) {
-                    if (i > 0) md.append("、");
-                    md.append("#").append(selectedTags.get(i));
-                }
-                md.append("  \n");
-            }
-            md.append("\n");
-
-            // 逐条拼接笔记
-            for (NoteEntity note : notes) {
-                md.append("---\n\n");
-                String noteTime = sdf.format(new Date(note.getTimestamp()));
-                // 时间戳 + 标签行
-                md.append("**[").append(noteTime).append("]**");
-                if (note.getTag() != null && !note.getTag().isEmpty()) {
-                    md.append("　`#").append(note.getTag()).append("`");
-                }
-                md.append("\n");
-                // 正文（剔除行内标签语法）
-                String cleanContent = note.getContent();
-                if (cleanContent != null) {
-                    // 正则移除 #xxx 标签语法，保留纯正文
-                    cleanContent = cleanContent.replaceAll("#[^\\s#]+", "").trim();
-                }
-                md.append(cleanContent).append("\n\n");
-            }
-            md.append("---\n");
-            md.append("\n> 由 IdeaCards 自动生成，可直接导入 NotebookLM\n");
-
-            String markdown = md.toString();
-
-            // ── 写入临时文件 ──
+            // 写入临时文件
             boolean writeSuccess = false;
             try {
                 File exportDir = new File(getCacheDir(), "export");
@@ -453,7 +542,6 @@ public class ExportActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 if (success) {
-                    // 写入成功，开始上传
                     syncToDrive(finalMarkdown);
                 } else {
                     Toast.makeText(this, "文件创建失败", Toast.LENGTH_SHORT).show();
@@ -461,6 +549,49 @@ public class ExportActivity extends AppCompatActivity {
                 }
             });
         });
+    }
+
+    /**
+     * 拼接标准化 Markdown 文本（同步与导出共用）。
+     * 包含导出时间、筛选标签信息、逐条笔记（时间戳+标签+正文）。
+     */
+    private String buildMarkdownString(List<NoteEntity> notes, List<String> selectedTags) {
+        StringBuilder md = new StringBuilder();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA);
+        String exportTime = sdf.format(new Date());
+
+        md.append("# IdeaCards 导出笔记\n\n");
+        md.append("> 导出时间：").append(exportTime).append("  \n");
+
+        if (!selectedTags.isEmpty()) {
+            md.append("> 筛选标签：");
+            for (int i = 0; i < selectedTags.size(); i++) {
+                if (i > 0) md.append("、");
+                md.append("#").append(selectedTags.get(i));
+            }
+            md.append("  \n");
+        }
+        md.append("\n");
+
+        for (NoteEntity note : notes) {
+            md.append("---\n\n");
+            String noteTime = sdf.format(new Date(note.getTimestamp()));
+            md.append("**[").append(noteTime).append("]**");
+            if (note.getTag() != null && !note.getTag().isEmpty()) {
+                md.append("　`#").append(note.getTag()).append("`");
+            }
+            md.append("\n");
+            String cleanContent = note.getContent();
+            if (cleanContent != null) {
+                // 正则移除 #xxx 标签语法，保留纯正文
+                cleanContent = cleanContent.replaceAll("#[^\\s#]+", "").trim();
+            }
+            md.append(cleanContent).append("\n\n");
+        }
+        md.append("---\n");
+        md.append("\n> 由 IdeaCards 自动生成，可直接导入 NotebookLM\n");
+
+        return md.toString();
     }
 
     /**
