@@ -66,4 +66,16 @@ public interface NoteDao {
      */
     @Query("SELECT tag FROM notes WHERE tag IS NOT NULL AND tag != '' GROUP BY tag ORDER BY MAX(timestamp) DESC")
     List<String> getAllDistinctTags();
+
+    /**
+     * 按内容模糊搜索笔记，用于归档页的搜索功能。
+     */
+    @Query("SELECT * FROM notes WHERE content LIKE '%' || :keyword || '%' ORDER BY timestamp DESC")
+    List<NoteEntity> searchNotes(String keyword);
+
+    /**
+     * 按多标签筛选笔记（任一匹配），用于归档页的多标签筛选功能。
+     */
+    @Query("SELECT * FROM notes WHERE tag IN (:tags) ORDER BY timestamp DESC")
+    List<NoteEntity> getNotesByTags(List<String> tags);
 }

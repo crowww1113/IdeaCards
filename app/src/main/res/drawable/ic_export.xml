@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024"
+    android:tint="@color/text_primary">
+    <!-- 统一缩放所有图形，0.7~0.8之间所有图标保持同一个数值 -->
+    <group
+        android:scaleX="0.75"
+        android:scaleY="0.75"
+        android:translateX="128"
+        android:translateY="128">
+        <path android:fillColor="#FFFFFF" android:pathData="M0 841.142857m66.742857 0l890.514286 0q66.742857 0 66.742857 66.742857l0 49.371429q0 66.742857-66.742857 66.742857l-890.514286 0q-66.742857 0-66.742857-66.742857l0-49.371429q0-66.742857 66.742857-66.742857Z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M900.937143 249.234286L600.137143 3.84a16.457143 16.457143 0 0 0-26.88 12.617143v91.428571a16.64 16.64 0 0 1-14.994286 16.274286c-389.485714 38.4-438.857143 358.4-441.234286 509.805714a16.457143 16.457143 0 0 0 31.268572 7.314286c73.142857-150.674286 227.84-230.4 407.771428-237.714286a16.64 16.64 0 0 1 17.188572 16.64v88.137143a16.457143 16.457143 0 0 0 26.88 12.8L900.937143 274.285714a16.64 16.64 0 0 0 0-25.051428z"/>
+    </group>
+</vector>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 归档列表页布局：顶部导航栏 + 笔记列表
+<!-- 归档列表页布局：顶部导航栏 + 搜索筛选栏 + 笔记列表
      柔和美学：燕麦背景、大圆角卡片、治愈蓝按钮 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,7 +11,7 @@
     tools:context=".ArchiveActivity">
 
     <!-- ═══ 顶部导航栏 ═══ -->
-    <!-- 横向布局：返回键 + 标题 + 提醒按钮 -->
+    <!-- 横向布局：返回图标 + 标题 + 功能图标按钮组 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -19,21 +19,20 @@
         android:gravity="center_vertical"
         android:paddingStart="12dp"
         android:paddingTop="16dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="12dp">
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp">
 
-        <!-- 返回按钮：透明背景，视觉轻盈 -->
+        <!-- 返回按钮图标 -->
         <ImageButton
             android:id="@+id/btn_back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="返回"
-            android:src="@android:drawable/ic_menu_revert"
-            android:scaleType="centerInside"
-            android:tint="@color/text_primary" />
+            android:src="@drawable/ic_back"
+            android:scaleType="centerInside" />
 
-        <!-- 页面标题：深褐主文本 -->
+        <!-- 页面标题 -->
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -44,102 +43,153 @@
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
 
-        <!-- 导出 MD 按钮：柔粉背景、大圆角、无阴影
-             编辑模式下切换为"删除选中"样式 -->
+        <!-- 导出按钮图标 -->
+        <ImageButton
+            android:id="@+id/btn_export"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="导出 MD"
+            android:src="@drawable/ic_export"
+            android:scaleType="centerInside" />
+
+        <!-- 选择按钮图标 -->
+        <ImageButton
+            android:id="@+id/btn_select"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="选择"
+            android:src="@drawable/ic_select"
+            android:scaleType="centerInside" />
+
+        <!-- 提醒按钮图标 -->
+        <ImageButton
+            android:id="@+id/btn_remind"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="提醒我整理"
+            android:src="@drawable/ic_remind"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- ═══ 搜索 + 筛选栏 ═══ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:layout_marginBottom="8dp">
+
+        <!-- 搜索框：圆角胶囊样式 -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_export"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:layout_marginEnd="8dp"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="@color/accent_pastel_pink"
-            app:strokeWidth="0dp">
+            app:cardBackgroundColor="@color/card_white"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/divider_color">
 
-            <TextView
-                android:id="@+id/btn_export"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:text="导出 MD"
-                android:textSize="13sp"
-                android:textColor="@color/text_primary" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingVertical="2dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_search"
+                    android:contentDescription="搜索"
+                    android:layout_marginEnd="8dp" />
+
+                <EditText
+                    android:id="@+id/et_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="搜索笔记内容..."
+                    android:textColorHint="@color/text_secondary"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:maxLines="1"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch"
+                    android:background="@android:color/transparent"
+                    android:paddingVertical="8dp" />
+
+            </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 选择按钮：进入编辑模式，默认隐藏，编辑模式下也用于退出 -->
+        <!-- 筛选标签按钮：图标样式 -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:cardBackgroundColor="@color/accent_pastel_blue"
             app:strokeWidth="0dp">
 
-            <TextView
-                android:id="@+id/btn_select"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:text="选择"
-                android:textSize="13sp"
-                android:textColor="@color/text_primary" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp">
 
-        </com.google.android.material.card.MaterialCardView>
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_filter"
+                    android:contentDescription="筛选标签"
+                    android:layout_marginEnd="4dp" />
 
-        <!-- 提醒按钮：治愈蓝背景、大圆角、无阴影 -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="@color/accent_pastel_blue"
-            app:strokeWidth="0dp">
+                <TextView
+                    android:id="@+id/tv_filter_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="筛选"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_primary" />
 
-            <TextView
-                android:id="@+id/btn_remind"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:text="提醒我整理"
-                android:textSize="13sp"
-                android:textColor="@color/text_primary" />
+            </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 
-    <!-- ═══ 标签过滤栏 ═══ -->
-    <!-- 水平滚动的标签气泡行，包含"全部"及各个标签 -->
-    <HorizontalScrollView
+    <!-- ═══ 空状态提示（搜索无结果时显示） ═══ -->
+    <TextView
+        android:id="@+id/tv_empty_hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:layout_marginBottom="8dp">
-
-        <LinearLayout
-            android:id="@+id/ll_filter_tags"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical" />
-
-    </HorizontalScrollView>
+        android:gravity="center"
+        android:text="没有找到匹配的笔记"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:visibility="gone"
+        android:layout_marginTop="80dp" />
 
     <!-- ═══ 笔记列表区 ═══ -->
-    <!-- 左右 margin=20dp，隐藏滚动条 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_archive_notes"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingHorizontal="20dp"
+        android:paddingHorizontal="16dp"
         android:clipToPadding="false"
         android:scrollbars="none" />
 

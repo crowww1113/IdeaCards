@@ -20,13 +20,14 @@
         android:gravity="center_vertical">
 
         <!-- 多选复选框：默认隐藏，编辑模式下由 Adapter 控制显隐 -->
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cb_select"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
             android:visibility="gone"
-            android:buttonTint="@color/accent_pastel_blue" />
+            app:buttonTint="@color/tag_highlight"
+            app:useMaterialThemeColors="false" />
 
         <!-- 左侧装饰竖线：4dp 宽、治愈蓝、圆角 2dp -->
         <View
