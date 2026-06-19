@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 标签 Chip 选中状态背景色：选中时莫兰迪蓝灰，未选时极浅灰 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/tag_highlight" android:state_checked="true" />
+    <item android:color="#1A5B8FA8" />
+</selector>

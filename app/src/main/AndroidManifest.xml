@@ -29,6 +29,7 @@
         </activity>
         <activity android:name=".ArchiveActivity" android:exported="false" />
         <activity android:name=".DetailActivity" android:exported="false" />
+        <activity android:name=".ExportActivity" android:exported="false" />
 
         <!-- ContentProvider 随便用旧包名，本地数据库不影响谷歌功能 -->
         <provider
@@ -46,5 +47,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <meta-data
+            android:name="com.google.android.gms.signin.ClientId"
+            android:value="115702086596-9jbotqrsfj2pa1oolbsoc5ak0ui7rhbj.apps.googleusercontent.com" />
+
     </application>
 </manifest>

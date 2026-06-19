@@ -5,11 +5,13 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,13 +39,23 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.xiejinyi.ideacards.data.db.AppDatabase;
 import com.xiejinyi.ideacards.data.dao.NoteDao;
 import com.xiejinyi.ideacards.data.entity.NoteEntity;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.services.drive.DriveScopes;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -60,8 +72,11 @@ public class ArchiveActivity extends AppCompatActivity {
 
     private static final String CHANNEL_ID = "note_remind";
     private static final String CHANNEL_NAME = "笔记提醒";
+    private static final String TAG = "ArchiveActivity";
     private static final int REQUEST_CODE_NOTIFICATION = 1001;
     private static final int REQUEST_DETAIL = 1002;
+    private static final int RC_SIGN_IN = 9001;
+    private static final int RC_AUTHORIZE_DRIVE = 4097;
 
     private RecyclerView rvArchiveNotes;
     private ImageButton btnBack;
@@ -85,6 +100,14 @@ public class ArchiveActivity extends AppCompatActivity {
     private static final Pattern TAG_PATTERN = Pattern.compile("#[^\\s#]+");
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    // Google Drive 云端同步相关
+    private GoogleDriveManager driveManager;
+    /** 授权回调后待重试的同步数据 */
+    private String pendingMarkdown;
+    private String pendingFilePath;
+    /** 当前显示的上传进度对话框 */
+    private AlertDialog uploadDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -154,12 +177,24 @@ public class ArchiveActivity extends AppCompatActivity {
             if (adapter.isSelectionMode()) {
                 onBatchDeleteClicked();
             } else {
-                exportToMarkdown();
+                startActivity(new Intent(this, ExportActivity.class));
             }
         });
 
         // 筛选标签按钮：弹出 BottomSheet
         cardFilter.setOnClickListener(v -> showFilterBottomSheet());
+
+        // 初始化 Google Drive 云端同步
+        driveManager = GoogleDriveManager.getInstance();
+
+        // 若用户已登录，预初始化 Drive 服务（提升首次同步速度）
+        if (checkGoogleSignIn()) {
+            GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
+                    getApplicationContext(), Collections.singletonList(DriveScopes.DRIVE_FILE));
+            credential.setSelectedAccount(
+                    GoogleSignIn.getLastSignedInAccount(this).getAccount());
+            driveManager.initDriveService(credential);
+        }
 
         loadNotes();
     }
@@ -500,9 +535,63 @@ public class ArchiveActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        // Google 登录结果
+        if (requestCode == RC_SIGN_IN) {
+            try {
+                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                Log.d(TAG, "Google 登录成功：" + account.getEmail());
+
+                // 检查是否已有 Drive 文件访问权限，有则直接同步，无则先请求
+                if (GoogleSignIn.hasPermissions(account, new Scope(DriveScopes.DRIVE_FILE))) {
+                    GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
+                            getApplicationContext(),
+                            Collections.singletonList(DriveScopes.DRIVE_FILE));
+                    credential.setSelectedAccount(account.getAccount());
+                    driveManager.initDriveService(credential);
+                    syncToDrive(null);
+                } else {
+                    GoogleSignIn.requestPermissions(
+                            this, RC_AUTHORIZE_DRIVE, account,
+                            new Scope(DriveScopes.DRIVE_FILE));
+                }
+            } catch (ApiException e) {
+                Log.e(TAG, "Google 登录失败，code=" + e.getStatusCode(), e);
+                Toast.makeText(this, "Google 登录失败", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
+        // Drive 文件访问权限授权结果
+        if (requestCode == RC_AUTHORIZE_DRIVE) {
+            if (resultCode == RESULT_OK) {
+                Log.d(TAG, "Drive 权限授权成功，重试同步");
+                GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
+                        getApplicationContext(),
+                        Collections.singletonList(DriveScopes.DRIVE_FILE));
+                GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+                credential.setSelectedAccount(account.getAccount());
+                driveManager.initDriveService(credential);
+                // 显示新的上传对话框并重试同步
+                showUploadDialog();
+                syncToDrive(null);
+            } else {
+                pendingMarkdown = null;
+                pendingFilePath = null;
+                if (uploadDialog != null && uploadDialog.isShowing()) {
+                    uploadDialog.dismiss();
+                }
+                Toast.makeText(this, "未授权 Drive 访问，同步取消", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
+        // 详情页返回结果
         if (requestCode == REQUEST_DETAIL && resultCode == RESULT_OK && data != null) {
             int action = data.getIntExtra(DetailActivity.RESULT_ACTION, 0);
             if (action == DetailActivity.ACTION_UPDATED) {
@@ -567,8 +656,11 @@ public class ArchiveActivity extends AppCompatActivity {
             }
             md.append("---\n");
 
+            // 以下变量在 lambda 外预先计算，确保 effectively final
             String markdown = md.toString();
-            Uri fileUri = null;
+            Uri shareUri = null;
+            String filePath = null;
+
             try {
                 File exportDir = new File(getCacheDir(), "export");
                 if (!exportDir.exists()) exportDir.mkdirs();
@@ -577,17 +669,21 @@ public class ArchiveActivity extends AppCompatActivity {
                 FileWriter writer = new FileWriter(mdFile);
                 writer.write(markdown);
                 writer.close();
-                fileUri = FileProvider.getUriForFile(
+                shareUri = FileProvider.getUriForFile(
                         this, "com.xiejinyi.ideacards.fileprovider", mdFile);
+                filePath = mdFile.getAbsolutePath();
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            final Uri shareUri = fileUri;
+            // 用 final 变量捕获，供 lambda 安全使用
+            final Uri finalShareUri = shareUri;
+            final String finalFilePath = filePath;
+
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 btnExport.setEnabled(true);
-                if (shareUri == null) {
+                if (finalShareUri == null) {
                     Toast.makeText(this, "文件创建失败，以文本方式分享", Toast.LENGTH_SHORT).show();
                     Intent fallback = new Intent(Intent.ACTION_SEND);
                     fallback.setType("text/plain");
@@ -597,10 +693,16 @@ public class ArchiveActivity extends AppCompatActivity {
                 }
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("text/markdown");
-                shareIntent.putExtra(Intent.EXTRA_STREAM, shareUri);
+                shareIntent.putExtra(Intent.EXTRA_STREAM, finalShareUri);
                 shareIntent.putExtra(Intent.EXTRA_SUBJECT, "IdeaCards 随笔导出");
                 shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 startActivity(Intent.createChooser(shareIntent, "分享笔记"));
+
+                // 分享后同步至 Google Drive
+                pendingMarkdown = markdown;
+                pendingFilePath = finalFilePath;
+                showUploadDialog();
+                syncToDrive(markdown);
             });
         });
     }
@@ -615,6 +717,146 @@ public class ArchiveActivity extends AppCompatActivity {
     private String stripTags(String text) {
         if (text == null) return "";
         return TAG_PATTERN.matcher(text).replaceAll("").replaceAll("\\s+", " ").trim();
+    }
+
+    // ═══════════════════════════════════════
+    //  Google Drive 云端同步
+    // ═══════════════════════════════════════
+
+    /** 检查当前用户是否已登录 Google 账号 */
+    @SuppressWarnings("deprecation")
+    private boolean checkGoogleSignIn() {
+        return GoogleSignIn.getLastSignedInAccount(this) != null;
+    }
+
+    /**
+     * 将 Markdown 同步到 Google Drive（在子线程执行）。
+     * 参数为空时自动使用待重试数据（授权回调场景）。
+     *
+     * @param markdown 已拼接好的完整 Markdown 文本，传 null 使用待重试数据
+     */
+    private void syncToDrive(String markdown) {
+        // 参数为空时，尝试使用待重试数据
+        if (markdown == null && pendingMarkdown != null) {
+            markdown = pendingMarkdown;
+        }
+        if (markdown == null || pendingFilePath == null) {
+            Log.w(TAG, "无待同步数据，跳过");
+            return;
+        }
+
+        java.io.File localFile = new java.io.File(pendingFilePath);
+        if (!localFile.exists()) {
+            Log.w(TAG, "待同步文件不存在：" + pendingFilePath);
+            return;
+        }
+
+        final java.io.File file = localFile;
+
+        executor.execute(() -> {
+            // 若 Drive 服务未初始化（用户未登录），触发 Google 登录
+            if (!driveManager.isInitialized()) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    Toast.makeText(this, "请先登录 Google 账号", Toast.LENGTH_SHORT).show();
+                    GoogleSignInOptions gso = new GoogleSignInOptions.Builder(
+                            GoogleSignInOptions.DEFAULT_SIGN_IN)
+                            .requestEmail()
+                            .requestScopes(new Scope(DriveScopes.DRIVE_FILE))
+                            .build();
+                    GoogleSignInClient client = GoogleSignIn.getClient(ArchiveActivity.this, gso);
+                    startActivityForResult(client.getSignInIntent(), RC_SIGN_IN);
+                });
+                return;
+            }
+
+            try {
+                boolean success = driveManager.uploadOrUpdateFile(file);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    // 同步完成，清除待重试数据并关闭对话框
+                    pendingMarkdown = null;
+                    pendingFilePath = null;
+                    if (uploadDialog != null && uploadDialog.isShowing()) {
+                        uploadDialog.dismiss();
+                    }
+                    if (success) {
+                        Toast.makeText(this,
+                                "同步至 Google Drive 成功！NotebookLM 已就绪",
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this,
+                                "Drive 同步失败，请重试",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException e) {
+                // 用户未授权 Drive 文件访问权限，关闭对话框后引导授权
+                Log.w(TAG, "需要用户授权 Drive 访问", e);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    if (uploadDialog != null && uploadDialog.isShowing()) {
+                        uploadDialog.dismiss();
+                    }
+                    Toast.makeText(this, "需要授权 Drive 访问权限", Toast.LENGTH_SHORT).show();
+                    try {
+                        startActivityForResult(e.getIntent(), RC_AUTHORIZE_DRIVE);
+                    } catch (Exception ex) {
+                        Log.e(TAG, "无法启动授权界面", ex);
+                        pendingMarkdown = null;
+                        pendingFilePath = null;
+                        Toast.makeText(this, "授权失败，请重试", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (IOException e) {
+                Log.e(TAG, "Drive 同步 IO 异常", e);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    pendingMarkdown = null;
+                    pendingFilePath = null;
+                    if (uploadDialog != null && uploadDialog.isShowing()) {
+                        uploadDialog.dismiss();
+                    }
+                    Toast.makeText(this, "网络异常，同步失败", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    /**
+     * 创建并显示上传进度对话框（替代已废弃的 ProgressDialog）。
+     * 居中显示旋转动画 + "正在同步至 Google Drive..." 提示。
+     */
+    private AlertDialog showUploadDialog() {
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int paddingPx = (int) (24 * getResources().getDisplayMetrics().density);
+        layout.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
+
+        android.widget.ProgressBar progressBar = new android.widget.ProgressBar(this);
+        progressBar.setIndeterminate(true);
+        layout.addView(progressBar);
+
+        TextView message = new TextView(this);
+        message.setText("正在同步至 Google Drive...");
+        message.setTextSize(16f);
+        message.setTextColor(Color.parseColor("#333333"));
+        int marginPx = (int) (16 * getResources().getDisplayMetrics().density);
+        android.widget.LinearLayout.LayoutParams lp =
+                new android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMarginStart(marginPx);
+        layout.addView(message, lp);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(layout)
+                .setCancelable(false)
+                .create();
+        dialog.show();
+        this.uploadDialog = dialog;
+        return dialog;
     }
 
     @Override
