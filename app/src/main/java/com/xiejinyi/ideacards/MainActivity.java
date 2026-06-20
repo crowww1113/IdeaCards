@@ -134,14 +134,22 @@ public class MainActivity extends AppCompatActivity {
         adapter.setOnNoteLongClickListener((noteId, anchorView) ->
                 showNotePopup(noteId, anchorView));
 
-        // 标签按钮：切换最近标签气泡的显隐，同时向输入框追加 #
+        // 标签按钮：切换最近标签气泡的显隐，展开时追加 #，关闭时清除未使用的 #
         btnTag.setOnClickListener(v -> {
             if (hsvTags.getVisibility() == View.VISIBLE) {
                 hsvTags.setVisibility(View.GONE);
+                // 关闭时：若光标前是我们插入的 # 且后面没写标签名，删掉它
+                int cursor = etInput.getSelectionStart();
+                String text = etInput.getText().toString();
+                String before = text.substring(0, Math.max(0, cursor));
+                if (before.endsWith("#") && (cursor >= text.length()
+                        || text.charAt(cursor) == ' ' || text.charAt(cursor) == '\n')) {
+                    etInput.getText().delete(cursor - 1, cursor);
+                }
             } else {
                 hsvTags.setVisibility(View.VISIBLE);
+                insertAtCursor("#");
             }
-            insertAtCursor("#");
             etInput.requestFocus();
         });
 
@@ -197,8 +205,16 @@ public class MainActivity extends AppCompatActivity {
                 for (String tag : tagArray) {
                     TextView bubble = createTagBubble(tag);
                     bubble.setOnClickListener(v -> {
-                        // 点击气泡：向输入框追加 #标签名 + 空格，光标移至末尾，收起标签栏
-                        insertAtCursor("#" + tag + " ");
+                        // 点击气泡：若光标前已有 #（由标签按钮插入），直接追加标签名；
+                        // 否则插入完整 #标签名
+                        int cursor = etInput.getSelectionStart();
+                        String textBefore = etInput.getText().toString()
+                                .substring(0, Math.max(0, cursor));
+                        if (textBefore.endsWith("#")) {
+                            insertAtCursor(tag + " ");
+                        } else {
+                            insertAtCursor("#" + tag + " ");
+                        }
                         hsvTags.setVisibility(View.GONE);
                         etInput.requestFocus();
                     });
