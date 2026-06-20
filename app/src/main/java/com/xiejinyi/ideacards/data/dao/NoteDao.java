@@ -30,7 +30,7 @@ public interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id")
     NoteEntity getNoteById(long id);
 
-    @Query("SELECT * FROM notes")
+    @Query("SELECT * FROM notes ORDER BY timestamp ASC")
     List<NoteEntity> getAllNotes();
 
     @Query("SELECT id AS _id, content, timestamp, status FROM notes")

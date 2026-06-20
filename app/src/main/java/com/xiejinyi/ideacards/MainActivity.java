@@ -345,8 +345,11 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 adapter.setData(notes);
-                if (!notes.isEmpty()) {
-                    rvNotes.scrollToPosition(notes.size() - 1);
+                // scrollToPosition 必须用 adapter 的 item 数量（含时间分隔线），
+                // 而非 notes.size()，否则会滚错位置
+                int lastPos = adapter.getItemCount() - 1;
+                if (lastPos >= 0) {
+                    rvNotes.post(() -> rvNotes.scrollToPosition(lastPos));
                 }
             });
         });
