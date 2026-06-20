@@ -31,6 +31,30 @@
         <activity android:name=".DetailActivity" android:exported="false" />
         <activity android:name=".ExportActivity" android:exported="false" />
 
+        <!-- 极速输入浮窗：从控制中心磁贴呼出，独立任务栈避免激活主页 -->
+        <activity
+            android:name=".QuickInputActivity"
+            android:theme="@style/Theme.QuickInput"
+            android:exported="false"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true" />
+
+        <!-- 控制中心快捷磁贴：下拉状态栏一键记灵感 -->
+        <service
+            android:name=".QuickNoteTileService"
+            android:icon="@drawable/ic_qs_note"
+            android:label="记下灵感"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="true" />
+        </service>
+
         <!-- ContentProvider 随便用旧包名，本地数据库不影响谷歌功能 -->
         <provider
             android:name=".data.provider.NoteContentProvider"

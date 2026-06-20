@@ -42,7 +42,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -323,32 +322,15 @@ public class MainActivity extends AppCompatActivity {
         NoteEntity note = new NoteEntity(content, System.currentTimeMillis(), 0);
         note.setTag(extractedTag);
 
+        // 通过统一仓库保存（入库 + Obsidian 同步）
         executor.execute(() -> {
-            // 子线程写入数据库
-            noteDao.insert(note);
+            NoteRepository.getInstance(MainActivity.this).saveNote(note);
 
-            // 全量同步到 Obsidian 本地库（若已绑定），等同于自动导出，失败不影响主流程
-            ObsidianSyncManager obsidian = ObsidianSyncManager.getInstance();
-            if (obsidian.isConnected(MainActivity.this)) {
-                try {
-                    List<NoteEntity> allNotes = noteDao.getAllNotes();
-                    if (!allNotes.isEmpty()) {
-                        String fullMarkdown = MarkdownUtils.buildExportMarkdown(
-                                allNotes, Collections.emptyList());
-                        obsidian.syncAllNotes(MainActivity.this, fullMarkdown);
-                    }
-                } catch (Exception e) {
-                    Log.w("MainActivity", "Obsidian 同步失败（不影响笔记保存）", e);
-                }
-            }
-
-            // 回到主线程更新 UI
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 etInput.setText("");
                 btnSend.setEnabled(true);
                 loadNotes();
-                // 发送后刷新最近标签气泡（新标签可能出现了）
                 loadRecentTags();
             });
         });
