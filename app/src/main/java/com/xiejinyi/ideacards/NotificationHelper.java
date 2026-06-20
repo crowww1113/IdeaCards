@@ -71,7 +71,7 @@ public class NotificationHelper {
         // 5. 构建通知：直接展示单条笔记内容
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_remind)
-                .setContentTitle("💡回顾")
+                .setContentTitle("还记得你写下过的灵感吗")
                 .setContentText(truncate(notes.get(0).getContent(), 80))
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
