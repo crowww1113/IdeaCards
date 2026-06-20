@@ -44,9 +44,9 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
         void onNoteClick(long noteId);
     }
 
-    /** 长按回调：长按卡片时触发（用于弹出 PopupMenu） */
+    /** 长按回调：长按卡片时触发（携带触摸坐标，用于定位浮窗） */
     public interface OnNoteLongClickListener {
-        void onNoteLongClick(long noteId, View anchorView);
+        void onNoteLongClick(long noteId, View anchorView, int touchX, int touchY);
     }
 
     private OnNoteClickListener clickListener;
@@ -167,10 +167,21 @@ public class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.ViewHo
             });
         }
 
-        // 长按：两种模式都弹出 PopupMenu
+        // 记录触摸坐标，供长按浮窗定位使用
+        final int[] touchPos = new int[2];
+        holder.itemView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                touchPos[0] = (int) event.getRawX();
+                touchPos[1] = (int) event.getRawY();
+            }
+            return false;
+        });
+
+        // 长按：触发回调（携带触摸坐标）
         holder.itemView.setOnLongClickListener(v -> {
             if (longClickListener != null) {
-                longClickListener.onNoteLongClick(note.getId(), v);
+                longClickListener.onNoteLongClick(note.getId(), v,
+                        touchPos[0], touchPos[1]);
             }
             return true;
         });

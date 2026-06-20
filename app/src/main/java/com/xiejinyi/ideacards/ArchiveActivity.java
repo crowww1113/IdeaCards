@@ -17,7 +17,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -149,8 +148,8 @@ public class ArchiveActivity extends AppCompatActivity {
         });
 
         // 列表项长按
-        adapter.setOnNoteLongClickListener((noteId, anchorView) ->
-                showNotePopup(noteId, anchorView));
+        adapter.setOnNoteLongClickListener((noteId, anchorView, touchX, touchY) ->
+                showNotePopup(noteId, anchorView, touchX, touchY));
 
         // 搜索框：实时过滤
         etSearch.addTextChangedListener(new TextWatcher() {
@@ -383,28 +382,20 @@ public class ArchiveActivity extends AppCompatActivity {
     }
 
     // ═══════════════════════════════════════
-    //  长按 PopupMenu
+    //  长按浮动菜单
     // ═══════════════════════════════════════
 
-    private void showNotePopup(long noteId, View anchorView) {
-        PopupMenu popup = new PopupMenu(this, anchorView);
-        popup.getMenu().add(0, 1, 0, "编辑卡片");
-        popup.getMenu().add(0, 2, 1, "彻底删除");
-
-        popup.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == 1) {
+    private void showNotePopup(long noteId, View anchorView, int touchX, int touchY) {
+        String[] items = {"编辑卡片", "彻底删除"};
+        FloatingMenuHelper.show(anchorView, items, touchX, touchY, index -> {
+            if (index == 0) {
                 Intent intent = new Intent(this, DetailActivity.class);
                 intent.putExtra(DetailActivity.EXTRA_NOTE_ID, noteId);
                 startActivityForResult(intent, REQUEST_DETAIL);
-                return true;
-            } else if (item.getItemId() == 2) {
+            } else if (index == 1) {
                 confirmDeleteSingle(noteId);
-                return true;
             }
-            return false;
         });
-
-        popup.show();
     }
 
     private void confirmDeleteSingle(long noteId) {

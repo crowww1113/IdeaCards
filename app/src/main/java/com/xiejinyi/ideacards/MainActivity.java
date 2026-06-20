@@ -16,7 +16,6 @@ import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -114,21 +113,23 @@ public class MainActivity extends AppCompatActivity {
         // 绑定视图
         tvQuote = findViewById(R.id.tv_quote);
         tvQuote.setSelected(true); // 启用跑马灯滚动
-        // 长按每日一言 → 弹出"保存为笔记"
+        // 长按每日一言 → 触摸点附近弹出浮窗"保存为笔记"
+        final int[] quoteTouchPos = new int[2];
+        tvQuote.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                quoteTouchPos[0] = (int) event.getRawX();
+                quoteTouchPos[1] = (int) event.getRawY();
+            }
+            return false;
+        });
         tvQuote.setOnLongClickListener(v -> {
             String quote = tvQuote.getText().toString();
             if (quote.isEmpty() || quote.equals("今日灵感获取失败")) return false;
-
-            PopupMenu popup = new PopupMenu(this, tvQuote);
-            popup.getMenu().add(0, 1, 0, "保存为笔记");
-            popup.setOnMenuItemClickListener(item -> {
-                if (item.getItemId() == 1) {
-                    saveQuoteAsNote(quote);
-                    return true;
-                }
-                return false;
-            });
-            popup.show();
+            FloatingMenuHelper.show(tvQuote, new String[]{"保存为笔记"},
+                    quoteTouchPos[0], quoteTouchPos[1],
+                    index -> {
+                        if (index == 0) saveQuoteAsNote(quote);
+                    });
             return true;
         });
         rvNotes = findViewById(R.id.rv_notes);
@@ -147,9 +148,9 @@ public class MainActivity extends AppCompatActivity {
         adapter = new BubbleAdapter(this);
         rvNotes.setAdapter(adapter);
 
-        // 长按卡片：弹出 PopupMenu（编辑卡片 / 彻底删除）
-        adapter.setOnNoteLongClickListener((noteId, anchorView) ->
-                showNotePopup(noteId, anchorView));
+        // 长按卡片：弹出浮动菜单（编辑卡片 / 彻底删除）
+        adapter.setOnNoteLongClickListener((noteId, anchorView, touchX, touchY) ->
+                showNotePopup(noteId, anchorView, touchX, touchY));
 
         // 标签按钮：切换最近标签气泡的显隐，展开时追加 #，关闭时清除未使用的 #
         btnTag.setOnClickListener(v -> {
@@ -451,25 +452,17 @@ public class MainActivity extends AppCompatActivity {
      * 在长按的气泡卡片旁边弹出浮动菜单。
      * "编辑卡片"跳转详情页，"彻底删除"弹出二次确认后直接删除。
      */
-    private void showNotePopup(long noteId, View anchorView) {
-        PopupMenu popup = new PopupMenu(this, anchorView);
-        popup.getMenu().add(0, 1, 0, "编辑卡片");
-        popup.getMenu().add(0, 2, 1, "彻底删除");
-
-        popup.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == 1) {
+    private void showNotePopup(long noteId, View anchorView, int touchX, int touchY) {
+        String[] items = {"编辑卡片", "彻底删除"};
+        FloatingMenuHelper.show(anchorView, items, touchX, touchY, index -> {
+            if (index == 0) {
                 Intent intent = new Intent(this, DetailActivity.class);
                 intent.putExtra(DetailActivity.EXTRA_NOTE_ID, noteId);
                 startActivity(intent);
-                return true;
-            } else if (item.getItemId() == 2) {
+            } else if (index == 1) {
                 confirmDelete(noteId);
-                return true;
             }
-            return false;
         });
-
-        popup.show();
     }
 
     /**

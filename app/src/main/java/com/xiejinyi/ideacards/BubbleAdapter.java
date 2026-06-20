@@ -37,9 +37,9 @@ public class BubbleAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     /** 混合列表：String = 时间分隔线文字，NoteEntity = 气泡笔记 */
     private final List<Object> items = new ArrayList<>();
 
-    /** 长按回调接口 */
+    /** 长按回调接口（携带触摸坐标，用于定位浮窗） */
     public interface OnNoteLongClickListener {
-        void onNoteLongClick(long noteId, View anchorView);
+        void onNoteLongClick(long noteId, View anchorView, int touchX, int touchY);
     }
 
     private OnNoteLongClickListener longClickListener;
@@ -113,10 +113,21 @@ public class BubbleAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 bubbleHolder.tvTag.setVisibility(View.GONE);
             }
 
-            // 长按：触发回调
+            // 记录触摸坐标，供长按浮窗定位使用
+            final int[] touchPos = new int[2];
+            bubbleHolder.itemView.setOnTouchListener((v, event) -> {
+                if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                    touchPos[0] = (int) event.getRawX();
+                    touchPos[1] = (int) event.getRawY();
+                }
+                return false; // 不消费，让长按事件正常触发
+            });
+
+            // 长按：触发回调（携带触摸坐标）
             bubbleHolder.itemView.setOnLongClickListener(v -> {
                 if (longClickListener != null) {
-                    longClickListener.onNoteLongClick(note.getId(), v);
+                    longClickListener.onNoteLongClick(note.getId(), v,
+                            touchPos[0], touchPos[1]);
                 }
                 return true;
             });
