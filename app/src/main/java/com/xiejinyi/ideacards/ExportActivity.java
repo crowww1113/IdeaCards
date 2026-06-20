@@ -456,7 +456,7 @@ public class ExportActivity extends AppCompatActivity {
             }
 
             // 拼接 Markdown（与同步共用格式）
-            String markdown = buildMarkdownString(notes, selectedTags);
+            String markdown = MarkdownUtils.buildExportMarkdown(notes, selectedTags);
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm", Locale.CHINA);
             String timestamp = sdf.format(new Date());
 
@@ -516,7 +516,7 @@ public class ExportActivity extends AppCompatActivity {
                 return;
             }
 
-            String markdown = buildMarkdownString(notes, selectedTags);
+            String markdown = MarkdownUtils.buildExportMarkdown(notes, selectedTags);
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA);
             String exportTime = sdf.format(new Date());
 
@@ -549,54 +549,6 @@ public class ExportActivity extends AppCompatActivity {
                 }
             });
         });
-    }
-
-    /**
-     * 拼接标准化 Markdown 文本（同步与导出共用）。
-     * 包含导出时间、筛选标签信息、逐条笔记（时间戳+标签+正文）。
-     */
-    private String buildMarkdownString(List<NoteEntity> notes, List<String> selectedTags) {
-        StringBuilder md = new StringBuilder();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA);
-        String exportTime = sdf.format(new Date());
-
-        // 1. 保留 Obsidian 标准 YAML Frontmatter
-        md.append("---\n");
-        md.append("title: 💡灵感归档\n");
-        md.append("date: ").append(exportTime).append("\n");
-        if (!selectedTags.isEmpty()) {
-            md.append("tags: [");
-            for (int i = 0; i < selectedTags.size(); i++) {
-                if (i > 0) md.append(", ");
-                md.append(selectedTags.get(i)); // 属性区标签无需 #
-            }
-            md.append("]\n");
-        }
-        md.append("---\n\n");
-
-        // 3. 笔记内容主体 (极简流式，拒绝大纲污染)
-        for (NoteEntity note : notes) {
-            String noteTime = sdf.format(new Date(note.getTimestamp()));
-
-            // 判断是否有有效标签，决定是否添加标签小尾巴
-            if (note.getTag() != null && !note.getTag().trim().isEmpty()) {
-                md.append("**[").append(noteTime).append("] · ").append(note.getTag().trim()).append("**\n");
-            } else {
-                // 无标签时，极致留白，仅显示时间
-                md.append("**[").append(noteTime).append("]**\n");
-            }
-
-            String cleanContent = note.getContent();
-            if (cleanContent != null) {
-                // 清理正文中多余的行内标签，保持纯净
-                cleanContent = cleanContent.replaceAll("(?m)(^|\\s)#([^\\s#]+)", "").trim();
-            }
-
-            // 追加正文，并使用两个换行符(\n\n)作为天然的视觉与语义分割
-            md.append(cleanContent).append("\n\n");
-        }
-
-        return md.toString();
     }
 
     /**

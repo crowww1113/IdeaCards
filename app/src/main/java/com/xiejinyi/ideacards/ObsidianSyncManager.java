@@ -29,6 +29,9 @@ public class ObsidianSyncManager {
     /** 笔记存放的子目录名 */
     private static final String SUBDIRECTORY_NAME = "IdeaCards";
 
+    /** 同步文件名（单文件，所有笔记追加到此文件中） */
+    private static final String SYNC_FILE_NAME = "IdeaCards_Sync.md";
+
     private static volatile ObsidianSyncManager instance;
 
     private ObsidianSyncManager() {}
@@ -102,23 +105,18 @@ public class ObsidianSyncManager {
     }
 
     // ═══════════════════════════════════════
-    //  静默写入
+    //  静默写入（单文件追加模式）
     // ═══════════════════════════════════════
 
     /**
-     * 将 Markdown 笔记静默写入 Obsidian 库的 IdeaCards 子目录。
-     * <p>
-     * 流程：
-     * 1. 从 Tree Uri 获取根目录 DocumentFile
-     * 2. 查找或创建名为 "IdeaCards" 的子目录
-     * 3. 在子目录中查找同名文件 → 存在则覆写，不存在则新建
+     * 将完整 Markdown 覆写到 Obsidian 库的 IdeaCards_Sync.md。
+     * 每次保存笔记时调用，用全量笔记内容整体覆盖，等同于自动导出。
      *
      * @param context  上下文
-     * @param fileName 文件名，如 "20260619_153022_学习.md"
-     * @param markdown Markdown 正文内容
+     * @param markdown 全量笔记的完整 Markdown 文本（与导出格式一致）
      * @return true 写入成功，false 失败
      */
-    public boolean writeToVault(Context context, String fileName, String markdown) {
+    public boolean syncAllNotes(Context context, String markdown) {
         Uri treeUri = getTreeUri(context);
         if (treeUri == null) {
             Log.w(TAG, "未绑定 Obsidian 库，跳过写入");
@@ -138,33 +136,26 @@ public class ObsidianSyncManager {
             return false;
         }
 
-        // 在子目录中查找同名文件
-        DocumentFile existingFile = findFileByName(ideaCardsDir, fileName);
-
-        DocumentFile targetFile;
-        if (existingFile != null) {
-            // 同名文件存在 → 覆写
-            targetFile = existingFile;
-            Log.d(TAG, "覆写已有文件：" + fileName);
-        } else {
-            // 新建文件
-            targetFile = ideaCardsDir.createFile("text/markdown", fileName);
-            if (targetFile == null) {
-                Log.e(TAG, "创建文件失败：" + fileName);
+        // 查找已有的同步文件，存在则覆写，不存在则新建
+        DocumentFile syncFile = findFileByName(ideaCardsDir, SYNC_FILE_NAME);
+        if (syncFile == null) {
+            syncFile = ideaCardsDir.createFile("text/markdown", SYNC_FILE_NAME);
+            if (syncFile == null) {
+                Log.e(TAG, "创建同步文件失败");
                 return false;
             }
-            Log.d(TAG, "新建文件：" + fileName);
+            Log.d(TAG, "新建同步文件：" + SYNC_FILE_NAME);
         }
 
-        // 写入内容
-        try (OutputStream os = context.getContentResolver().openOutputStream(targetFile.getUri(), "wt")) {
+        // 覆写全部内容
+        try (OutputStream os = context.getContentResolver().openOutputStream(syncFile.getUri(), "wt")) {
             if (os == null) {
                 Log.e(TAG, "无法打开 OutputStream");
                 return false;
             }
             os.write(markdown.getBytes(StandardCharsets.UTF_8));
             os.flush();
-            Log.d(TAG, "写入成功：" + targetFile.getUri());
+            Log.d(TAG, "同步文件覆写成功");
             return true;
         } catch (IOException e) {
             Log.e(TAG, "写入异常", e);

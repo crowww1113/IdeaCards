@@ -37,10 +37,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -266,26 +264,22 @@ public class MainActivity extends AppCompatActivity {
         NoteEntity note = new NoteEntity(content, System.currentTimeMillis(), 0);
         note.setTag(extractedTag);
 
-        // 用 final 变量捕获，供 lambda 安全使用
-        final String finalRawText = rawText;
-        final String finalContent = content;
-        final String finalExtractedTag = extractedTag;
-
         executor.execute(() -> {
             // 子线程写入数据库
             noteDao.insert(note);
 
-            // 静默写入 Obsidian 本地库（若已绑定），失败不影响主流程
+            // 全量同步到 Obsidian 本地库（若已绑定），等同于自动导出，失败不影响主流程
             ObsidianSyncManager obsidian = ObsidianSyncManager.getInstance();
             if (obsidian.isConnected(MainActivity.this)) {
                 try {
-                    SimpleDateFormat fileSdf = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.CHINA);
-                    String fileName = fileSdf.format(new Date())
-                            + (finalExtractedTag != null ? "_" + finalExtractedTag : "") + ".md";
-                    String noteMarkdown = "## " + finalRawText + "\n\n" + finalContent + "\n";
-                    obsidian.writeToVault(MainActivity.this, fileName, noteMarkdown);
+                    List<NoteEntity> allNotes = noteDao.getAllNotes();
+                    if (!allNotes.isEmpty()) {
+                        String fullMarkdown = MarkdownUtils.buildExportMarkdown(
+                                allNotes, Collections.emptyList());
+                        obsidian.syncAllNotes(MainActivity.this, fullMarkdown);
+                    }
                 } catch (Exception e) {
-                    Log.w("MainActivity", "Obsidian 写入失败（不影响笔记保存）", e);
+                    Log.w("MainActivity", "Obsidian 同步失败（不影响笔记保存）", e);
                 }
             }
 
