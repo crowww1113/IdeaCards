@@ -13,6 +13,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView rvNotes;
     private EditText etInput;
     private TextView btnSend;
-    private TextView btnArchive;
+    private ImageView btnArchive;
     private TextView btnTag;
     private HorizontalScrollView hsvTags;
     private LinearLayout llTags;

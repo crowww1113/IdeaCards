@@ -36,27 +36,15 @@
             android:textColor="@color/text_secondary"
             android:text="" />
 
-        <!-- 归档入口：小巧胶囊按钮 -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <!-- 归档入口：纯图标 -->
+        <ImageView
+            android:id="@+id/btn_archive"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:layout_marginStart="8dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="@color/accent_pastel_blue"
-            app:strokeWidth="0dp">
-
-            <TextView
-                android:id="@+id/btn_archive"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                android:text="归档"
-                android:textSize="13sp"
-                android:textColor="@color/text_primary" />
-
-        </com.google.android.material.card.MaterialCardView>
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_archive"
+            android:contentDescription="归档" />
 
     </LinearLayout>
 
