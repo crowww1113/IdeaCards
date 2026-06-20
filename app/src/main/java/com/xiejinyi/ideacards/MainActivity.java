@@ -2,6 +2,7 @@ package com.xiejinyi.ideacards;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
@@ -23,6 +24,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -59,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView btnSend;
     private ImageView btnArchive;
     private TextView btnTag;
+    private ImageView btnOcr;
     private HorizontalScrollView hsvTags;
     private LinearLayout llTags;
 
@@ -76,6 +81,14 @@ public class MainActivity extends AppCompatActivity {
 
     /** 单线程池，保证数据库操作串行执行，避免并发冲突 */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    /** 相册选图启动器：PickVisualMedia 支持 Android 10+ 照片选择器 */
+    private final ActivityResultLauncher<PickVisualMediaRequest> pickMediaLauncher =
+            registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
+                if (uri != null) {
+                    onImagePicked(uri);
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
         btnSend = findViewById(R.id.btn_send);
         btnArchive = findViewById(R.id.btn_archive);
         btnTag = findViewById(R.id.btn_tag);
+        btnOcr = findViewById(R.id.btn_ocr);
         hsvTags = findViewById(R.id.hsv_tags);
         llTags = findViewById(R.id.ll_tags);
 
@@ -131,6 +145,12 @@ public class MainActivity extends AppCompatActivity {
             insertAtCursor("#");
             etInput.requestFocus();
         });
+
+        // OCR 识图按钮：唤起系统相册选择图片
+        btnOcr.setOnClickListener(v ->
+                pickMediaLauncher.launch(new PickVisualMediaRequest.Builder()
+                        .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                        .build()));
 
         // 添加 TextWatcher：实时为 #标签 语法高亮
         etInput.addTextChangedListener(new TagHighlightWatcher());
@@ -228,6 +248,36 @@ public class MainActivity extends AppCompatActivity {
         if (editable != null) {
             editable.insert(start, text);
         }
+    }
+
+    /**
+     * 用户从相册选中图片后，调用 OCR 提取文字并追加到输入框。
+     */
+    private void onImagePicked(Uri imageUri) {
+        Toast.makeText(this, "正在提取文字，请稍候...", Toast.LENGTH_SHORT).show();
+
+        OcrManager.getInstance().extractTextFromUri(this, imageUri,
+                new OcrManager.OcrCallback() {
+                    @Override
+                    public void onSuccess(String text) {
+                        runOnUiThread(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            // 前后补换行，保持版面整洁
+                            insertAtCursor("\n" + text + "\n");
+                            Toast.makeText(MainActivity.this,
+                                    "文字已提取", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+                        runOnUiThread(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            Toast.makeText(MainActivity.this,
+                                    error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
     }
 
     /**

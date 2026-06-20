@@ -119,6 +119,19 @@
                     android:paddingVertical="6dp"
                     android:background="?attr/selectableItemBackgroundBorderless" />
 
+                <!-- OCR 识图按钮：从相册选图提取文字 -->
+                <ImageView
+                    android:id="@+id/btn_ocr"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="6dp"
+                    android:src="@drawable/ic_photo"
+                    android:scaleType="centerInside"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="识图" />
+
                 <!-- 输入框：无边框透明背景，与卡片融为一体 -->
                 <EditText
                     android:id="@+id/et_input"

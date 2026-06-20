@@ -49,6 +49,9 @@ dependencies {
     implementation(libs.google.api.services.drive)
     implementation(libs.google.http.client.android)
     implementation(libs.google.http.client.gson)
+
+    // ML Kit 中英文文字识别（离线，约 20MB 模型）
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
