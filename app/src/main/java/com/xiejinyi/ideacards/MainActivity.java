@@ -114,6 +114,23 @@ public class MainActivity extends AppCompatActivity {
         // 绑定视图
         tvQuote = findViewById(R.id.tv_quote);
         tvQuote.setSelected(true); // 启用跑马灯滚动
+        // 长按每日一言 → 弹出"保存为笔记"
+        tvQuote.setOnLongClickListener(v -> {
+            String quote = tvQuote.getText().toString();
+            if (quote.isEmpty() || quote.equals("今日灵感获取失败")) return false;
+
+            PopupMenu popup = new PopupMenu(this, tvQuote);
+            popup.getMenu().add(0, 1, 0, "保存为笔记");
+            popup.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == 1) {
+                    saveQuoteAsNote(quote);
+                    return true;
+                }
+                return false;
+            });
+            popup.show();
+            return true;
+        });
         rvNotes = findViewById(R.id.rv_notes);
         etInput = findViewById(R.id.et_input);
         btnSend = findViewById(R.id.btn_send);
@@ -487,6 +504,23 @@ public class MainActivity extends AppCompatActivity {
         loadNotes();
         // 从归档页返回后，也可能带了新标签，刷新一下
         loadRecentTags();
+    }
+
+    /**
+     * 将每日一言保存为笔记，自动添加 #摘录 标签。
+     */
+    private void saveQuoteAsNote(String quote) {
+        NoteEntity note = new NoteEntity(quote, System.currentTimeMillis(), 0);
+        note.setTag("摘录");
+        executor.execute(() -> {
+            NoteRepository.getInstance(MainActivity.this).saveNote(note);
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                Toast.makeText(this, "已保存为笔记", Toast.LENGTH_SHORT).show();
+                loadNotes();
+                loadRecentTags();
+            });
+        });
     }
 
     /**
