@@ -11,28 +11,33 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.xiejinyi.ideacards.data.entity.NoteEntity;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * 主页聊天气泡适配器：渲染笔记为气泡列表。
+ * 微信风格聊天气泡适配器：多 ViewType 渲染时间分隔线 + 右对齐气泡。
  * 支持长按回调（用于弹出 PopupMenu）。
  */
-public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder> {
+public class BubbleAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm";
+    private static final int TYPE_TIME = 0;
+    private static final int TYPE_BUBBLE = 1;
 
-    /** 标签匹配正则：与 MainActivity 保持一致，用于剔除内容中的行内标签 */
+    /** 两条笔记间隔超过此值（毫秒）则插入时间分隔线 */
+    private static final long TIME_HEADER_THRESHOLD = 5 * 60 * 1000;
+
+    /** 标签匹配正则：剔除内容中的行内标签 */
     private static final Pattern TAG_PATTERN = Pattern.compile("#[^\\s#]+");
 
     private final LayoutInflater inflater;
-    private final List<NoteEntity> notes = new ArrayList<>();
 
-    /** 长按回调接口：外部 Activity 实现，用于弹出 PopupMenu */
+    /** 混合列表：String = 时间分隔线文字，NoteEntity = 气泡笔记 */
+    private final List<Object> items = new ArrayList<>();
+
+    /** 长按回调接口 */
     public interface OnNoteLongClickListener {
         void onNoteLongClick(long noteId, View anchorView);
     }
@@ -48,69 +53,166 @@ public class BubbleAdapter extends RecyclerView.Adapter<BubbleAdapter.ViewHolder
     }
 
     /**
-     * 替换整个数据列表并刷新 UI。
+     * 将笔记列表转换为混合列表（时间分隔线 + 气泡），刷新 UI。
      */
-    public void setData(List<NoteEntity> newNotes) {
-        notes.clear();
-        notes.addAll(newNotes);
+    public void setData(List<NoteEntity> notes) {
+        items.clear();
+
+        for (int i = 0; i < notes.size(); i++) {
+            NoteEntity note = notes.get(i);
+
+            // 第一条笔记，或与上一条间隔超过阈值 → 插入时间分隔线
+            if (i == 0) {
+                items.add(formatSmartTime(note.getTimestamp()));
+            } else {
+                long prevTimestamp = notes.get(i - 1).getTimestamp();
+                if (note.getTimestamp() - prevTimestamp > TIME_HEADER_THRESHOLD) {
+                    items.add(formatSmartTime(note.getTimestamp()));
+                }
+            }
+
+            items.add(note);
+        }
+
         notifyDataSetChanged();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return (items.get(position) instanceof String) ? TYPE_TIME : TYPE_BUBBLE;
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View itemView = inflater.inflate(R.layout.item_bubble, parent, false);
-        return new ViewHolder(itemView);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == TYPE_TIME) {
+            View view = inflater.inflate(R.layout.item_time_header, parent, false);
+            return new TimeViewHolder(view);
+        } else {
+            View view = inflater.inflate(R.layout.item_bubble, parent, false);
+            return new BubbleViewHolder(view);
+        }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        NoteEntity note = notes.get(position);
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if (holder instanceof TimeViewHolder) {
+            ((TimeViewHolder) holder).tvTime.setText((String) items.get(position));
+        } else if (holder instanceof BubbleViewHolder) {
+            BubbleViewHolder bubbleHolder = (BubbleViewHolder) holder;
+            NoteEntity note = (NoteEntity) items.get(position);
 
-        // 设置笔记内容：剔除行内 #标签，只显示纯正文
-        // （兼容旧数据：修复前创建的笔记 content 中可能包含标签文字）
-        String displayContent = stripTags(note.getContent());
-        holder.tvContent.setText(displayContent);
+            // 笔记内容：剔除行内标签
+            bubbleHolder.tvContent.setText(stripTags(note.getContent()));
 
-        // 格式化时间戳
-        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.CHINA);
-        holder.tvTimestamp.setText(sdf.format(new Date(note.getTimestamp())));
-
-        // 长按：触发回调，传入 anchorView 用于定位 PopupMenu
-        holder.itemView.setOnLongClickListener(v -> {
-            if (longClickListener != null) {
-                longClickListener.onNoteLongClick(note.getId(), v);
+            // 标签 pill：有标签时显示
+            if (note.getTag() != null && !note.getTag().trim().isEmpty()) {
+                bubbleHolder.tvTag.setText("#" + note.getTag().trim());
+                bubbleHolder.tvTag.setVisibility(View.VISIBLE);
+            } else {
+                bubbleHolder.tvTag.setVisibility(View.GONE);
             }
-            return true;
-        });
+
+            // 长按：触发回调
+            bubbleHolder.itemView.setOnLongClickListener(v -> {
+                if (longClickListener != null) {
+                    longClickListener.onNoteLongClick(note.getId(), v);
+                }
+                return true;
+            });
+        }
     }
 
+    @Override
+    public int getItemCount() {
+        return items.size();
+    }
+
+    // ═══════════════════════════════════════
+    //  时间格式化
+    // ═══════════════════════════════════════
+
     /**
-     * 剔除文本中的所有行内标签（#xxx），返回纯正文。
-     * 用于兼容修复前创建的旧笔记，避免标签文字显示在气泡中。
+     * 智能时间格式化：
+     * - 同一天：HH:mm（如 14:30）
+     * - 昨天：昨天 HH:mm
+     * - 同月：d号 HH:mm（如 15号 14:30）
+     * - 同年：M月d号（如 6月15号）
+     * - 跨年：yyyy年M月d号（如 2025年6月15号）
      */
+    private String formatSmartTime(long timestamp) {
+        Calendar note = Calendar.getInstance();
+        note.setTimeInMillis(timestamp);
+        Calendar now = Calendar.getInstance();
+
+        int noteYear = note.get(Calendar.YEAR);
+        int noteDay = note.get(Calendar.DAY_OF_YEAR);
+        int nowYear = now.get(Calendar.YEAR);
+        int nowDay = now.get(Calendar.DAY_OF_YEAR);
+
+        boolean sameYear = (noteYear == nowYear);
+        boolean sameDay = sameYear && (noteDay == nowDay);
+        boolean isYesterday = sameYear && (nowDay - noteDay == 1);
+
+        // 跨年检查：去年12月31日 → 今年1月1日也算昨天
+        if (!sameYear && nowYear - noteYear == 1) {
+            Calendar lastDayOfNoteYear = Calendar.getInstance();
+            lastDayOfNoteYear.set(noteYear, Calendar.DECEMBER, 31);
+            int lastDay = lastDayOfNoteYear.get(Calendar.DAY_OF_YEAR);
+            if (noteDay == lastDay && nowDay == 1) {
+                isYesterday = true;
+            }
+        }
+
+        String timePart = String.format(Locale.CHINA, "%02d:%02d",
+                note.get(Calendar.HOUR_OF_DAY), note.get(Calendar.MINUTE));
+
+        if (sameDay) {
+            return timePart;
+        } else if (isYesterday) {
+            return "昨天 " + timePart;
+        } else if (sameYear) {
+            return (note.get(Calendar.MONTH) + 1) + "月"
+                    + note.get(Calendar.DAY_OF_MONTH) + "号 " + timePart;
+        } else {
+            return noteYear + "年" + (note.get(Calendar.MONTH) + 1) + "月"
+                    + note.get(Calendar.DAY_OF_MONTH) + "号";
+        }
+    }
+
+    // ═══════════════════════════════════════
+    //  工具方法
+    // ═══════════════════════════════════════
+
+    /** 剔除文本中的行内标签（#xxx） */
     private String stripTags(String text) {
         if (text == null) return "";
         return TAG_PATTERN.matcher(text).replaceAll("").replaceAll("\\s+", " ").trim();
     }
 
-    @Override
-    public int getItemCount() {
-        return notes.size();
+    // ═══════════════════════════════════════
+    //  ViewHolder
+    // ═══════════════════════════════════════
+
+    /** 时间分隔线 ViewHolder */
+    static class TimeViewHolder extends RecyclerView.ViewHolder {
+        final TextView tvTime;
+
+        TimeViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvTime = itemView.findViewById(R.id.tv_time_header);
+        }
     }
 
-    /**
-     * ViewHolder：持有 item_bubble.xml 中的控件引用。
-     */
-    static class ViewHolder extends RecyclerView.ViewHolder {
-
+    /** 气泡 ViewHolder */
+    static class BubbleViewHolder extends RecyclerView.ViewHolder {
+        final TextView tvTag;
         final TextView tvContent;
-        final TextView tvTimestamp;
 
-        ViewHolder(@NonNull View itemView) {
+        BubbleViewHolder(@NonNull View itemView) {
             super(itemView);
+            tvTag = itemView.findViewById(R.id.tv_tag);
             tvContent = itemView.findViewById(R.id.tv_content);
-            tvTimestamp = itemView.findViewById(R.id.tv_timestamp);
         }
     }
 }

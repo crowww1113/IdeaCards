@@ -11,62 +11,54 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <!-- ═══ 顶部名言卡片区 ═══ -->
-    <!-- MaterialCardView：圆角 24dp、无阴影、白底，20dp 外边距 -->
-    <com.google.android.material.card.MaterialCardView
+    <!-- ═══ 顶部名言 + 归档（紧凑单行，跑马灯滚动） ═══ -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="20dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="0dp"
-        app:cardBackgroundColor="@color/card_white"
-        app:strokeWidth="0dp">
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="12dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- 每日一言：单行跑马灯 -->
+        <TextView
+            android:id="@+id/tv_quote"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="20dp">
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:text="" />
 
-            <!-- 每日一言文字，深褐主文本色 -->
+        <!-- 归档入口：小巧胶囊按钮 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/accent_pastel_blue"
+            app:strokeWidth="0dp">
+
             <TextView
-                android:id="@+id/tv_quote"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="15sp"
-                android:textColor="@color/text_secondary"
-                android:lineSpacingExtra="4dp"
-                android:text="" />
-
-            <!-- 归档入口按钮：治愈蓝背景、大圆角、无阴影 -->
-            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_archive"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/accent_pastel_blue"
-                app:strokeWidth="0dp">
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:text="归档"
+                android:textSize="13sp"
+                android:textColor="@color/text_primary" />
 
-                <TextView
-                    android:id="@+id/btn_archive"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="8dp"
-                    android:text="归档"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_primary" />
+        </com.google.android.material.card.MaterialCardView>
 
-            </com.google.android.material.card.MaterialCardView>
-
-        </LinearLayout>
-
-    </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <!-- ═══ 中间笔记列表 ═══ -->
     <!-- RecyclerView 撑满剩余空间，左右留白 12dp，隐藏滚动条 -->
@@ -77,6 +69,7 @@
         android:layout_weight="1"
         android:layout_marginTop="8dp"
         android:paddingHorizontal="12dp"
+        android:paddingBottom="20dp"
         android:clipToPadding="false"
         android:scrollbars="none" />
 
@@ -106,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:scrollbars="none"
                 android:visibility="gone"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <LinearLayout
                     android:id="@+id/ll_tags"

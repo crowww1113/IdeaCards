@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 绑定视图
         tvQuote = findViewById(R.id.tv_quote);
+        tvQuote.setSelected(true); // 启用跑马灯滚动
         rvNotes = findViewById(R.id.rv_notes);
         etInput = findViewById(R.id.et_input);
         btnSend = findViewById(R.id.btn_send);
@@ -108,9 +109,8 @@ public class MainActivity extends AppCompatActivity {
         hsvTags = findViewById(R.id.hsv_tags);
         llTags = findViewById(R.id.ll_tags);
 
-        // 设置 RecyclerView：纵向列表，新条目从底部堆叠（聊天气泡风格）
+        // 设置 RecyclerView：纵向列表，聊天气泡风格
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true);
         rvNotes.setLayoutManager(layoutManager);
 
         adapter = new BubbleAdapter(this);
@@ -202,9 +202,17 @@ public class MainActivity extends AppCompatActivity {
         tv.setTextSize(13);
         tv.setTextColor(tagHighlightColor);
         tv.setGravity(Gravity.CENTER);
-        tv.setPadding(dp(16), dp(6), dp(16), dp(6));
+        tv.setPadding(dp(14), dp(5), dp(14), dp(5));
         // 圆角背景：复用治愈蓝背景，与项目风格统一
         tv.setBackgroundResource(R.drawable.bg_tag_bubble);
+
+        // 设置外边距：气泡之间留出间距
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(dp(2), dp(4), dp(2), dp(4));
+        tv.setLayoutParams(lp);
+
         return tv;
     }
 
@@ -304,6 +312,9 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 adapter.setData(notes);
+                if (!notes.isEmpty()) {
+                    rvNotes.scrollToPosition(notes.size() - 1);
+                }
             });
         });
     }

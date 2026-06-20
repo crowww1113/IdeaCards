@@ -1,44 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 聊天气泡卡片：柔和美学
-     MaterialCardView 圆角 16dp、弱阴影、白底
-     展示笔记内容 + 右下角时间戳 -->
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<!-- 聊天气泡：右对齐，右下角无圆角（模拟发送尾部） -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginVertical="8dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="1dp"
-    app:cardBackgroundColor="@color/card_white"
-    app:strokeWidth="0dp"
-    app:contentPadding="16dp">
+    android:layout_marginTop="2dp"
+    android:layout_marginBottom="2dp">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_gravity="end"
+        android:maxWidth="260dp"
+        android:layout_marginEnd="4dp"
+        android:background="@drawable/bg_bubble_sent"
+        android:orientation="vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
 
-        <!-- 笔记内容：深褐色主文本 -->
+        <!-- 标签 pill：有标签时显示，无标签时隐藏 -->
+        <TextView
+            android:id="@+id/tv_tag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:textSize="11sp"
+            android:textColor="@color/tag_highlight"
+            android:visibility="gone" />
+
+        <!-- 笔记内容 -->
         <TextView
             android:id="@+id/tv_content"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textColor="@color/text_primary"
             android:lineSpacingExtra="4dp"
             android:text="" />
 
-        <!-- 时间戳：浅灰紫副文本，右下对齐 -->
-        <TextView
-            android:id="@+id/tv_timestamp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="end"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:text="" />
-
     </LinearLayout>
 
-</com.google.android.material.card.MaterialCardView>
+</FrameLayout>
