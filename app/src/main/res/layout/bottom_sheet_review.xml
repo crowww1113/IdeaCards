@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 灵感回顾设置底部弹窗 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="20dp"
+    android:paddingBottom="24dp"
+    android:background="@drawable/bg_bottom_sheet">
+
+    <!-- 标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="回顾设置"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary" />
+
+    <!-- ── 每天回顾次数 ── -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="每天回顾次数"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="随机时间推送笔记"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/slider_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="1"
+            android:valueTo="10"
+            android:stepSize="1"
+            app:thumbColor="@color/tag_highlight"
+            app:trackColorActive="@color/tag_highlight"
+            app:trackColorInactive="@color/divider_color"
+            app:labelStyle="@style/SliderLabelStyle" />
+
+        <TextView
+            android:id="@+id/tv_count_value"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/tag_highlight" />
+
+    </LinearLayout>
+
+    <!-- ── 标签范围 ── -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="回顾范围"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="不选标签则回顾全部笔记"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary" />
+
+    <!-- 标签 ChipGroup -->
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_group_review_tags"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:chipSpacingHorizontal="8dp"
+        app:chipSpacingVertical="6dp"
+        app:singleLine="false"
+        app:singleSelection="false" />
+
+    <!-- ── 确认按钮 ── -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/btn_review_confirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/accent_pastel_blue"
+        app:rippleColor="@color/divider_color"
+        app:strokeWidth="0dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingVertical="14dp"
+            android:text="开始回顾"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</LinearLayout>

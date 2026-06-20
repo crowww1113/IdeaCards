@@ -78,4 +78,19 @@ public interface NoteDao {
      */
     @Query("SELECT * FROM notes WHERE tag IN (:tags) ORDER BY timestamp DESC")
     List<NoteEntity> getNotesByTags(List<String> tags);
+
+    /**
+     * 随机获取指定条数的笔记，用于灵感回顾通知。
+     * ORDER BY RANDOM() 让 SQLite 在每次查询时打乱顺序，
+     * LIMIT :limit 控制返回条数。
+     */
+    @Query("SELECT * FROM notes ORDER BY RANDOM() LIMIT :limit")
+    List<NoteEntity> getRandomNotes(int limit);
+
+    /**
+     * 在指定标签范围内随机获取笔记，用于按标签回顾。
+     * 先用 WHERE tag IN (:tags) 缩小范围，再随机排序取 limit 条。
+     */
+    @Query("SELECT * FROM notes WHERE tag IN (:tags) ORDER BY RANDOM() LIMIT :limit")
+    List<NoteEntity> getRandomNotesByTags(List<String> tags, int limit);
 }

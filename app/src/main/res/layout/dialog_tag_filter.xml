@@ -8,7 +8,7 @@
     android:paddingStart="24dp"
     android:paddingEnd="24dp"
     android:paddingBottom="32dp"
-    android:background="@color/card_white">
+    android:background="@drawable/bg_bottom_sheet">
 
     <!-- 标题 -->
     <TextView

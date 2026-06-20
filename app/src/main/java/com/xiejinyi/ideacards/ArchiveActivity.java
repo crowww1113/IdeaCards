@@ -1,8 +1,6 @@
 package com.xiejinyi.ideacards;
 
 import android.Manifest;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -27,7 +25,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
@@ -47,6 +44,9 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.slider.Slider;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.services.drive.DriveScopes;
 
@@ -70,8 +70,6 @@ import java.util.regex.Pattern;
  */
 public class ArchiveActivity extends AppCompatActivity {
 
-    private static final String CHANNEL_ID = "note_remind";
-    private static final String CHANNEL_NAME = "笔记提醒";
     private static final String TAG = "ArchiveActivity";
     private static final int REQUEST_CODE_NOTIFICATION = 1001;
     private static final int REQUEST_DETAIL = 1002;
@@ -255,12 +253,6 @@ public class ArchiveActivity extends AppCompatActivity {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View contentView = LayoutInflater.from(this).inflate(R.layout.dialog_tag_filter, null);
         dialog.setContentView(contentView);
-
-        // 设置 BottomSheet 圆角顶部背景
-        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-        if (bottomSheet != null) {
-            bottomSheet.setBackgroundResource(R.drawable.bg_bottom_sheet);
-        }
 
         RecyclerView rvFilterTags = contentView.findViewById(R.id.rv_filter_tags);
         TextView btnConfirm = contentView.findViewById(R.id.btn_confirm_filter);
@@ -504,22 +496,25 @@ public class ArchiveActivity extends AppCompatActivity {
     }
 
     // ═══════════════════════════════════════
-    //  通知权限 & 发送通知
+    //  灵感回顾：设置弹窗 + 通知
     // ═══════════════════════════════════════
 
+    /**
+     * 点击提醒按钮：先检查通知权限，再弹出回顾设置底部弹窗。
+     */
     private void onRemindClicked() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             int state = ContextCompat.checkSelfPermission(
                     this, Manifest.permission.POST_NOTIFICATIONS);
             if (state == PackageManager.PERMISSION_GRANTED) {
-                sendNotification();
+                showReviewSettingsSheet();
             } else {
                 requestPermissions(
                         new String[]{Manifest.permission.POST_NOTIFICATIONS},
                         REQUEST_CODE_NOTIFICATION);
             }
         } else {
-            sendNotification();
+            showReviewSettingsSheet();
         }
     }
 
@@ -531,8 +526,101 @@ public class ArchiveActivity extends AppCompatActivity {
         if (requestCode != REQUEST_CODE_NOTIFICATION) return;
         if (grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            sendNotification();
+            showReviewSettingsSheet();
         }
+    }
+
+    /**
+     * 弹出灵感回顾设置底部弹窗：
+     * - 滑块选择回顾条数（1~5）
+     * - ChipGroup 多选标签范围（空选 = 全部）
+     * - 确认后保存偏好并触发通知
+     */
+    private void showReviewSettingsSheet() {
+        ReviewSettingsManager settings = ReviewSettingsManager.getInstance();
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheetView = LayoutInflater.from(this)
+                .inflate(R.layout.bottom_sheet_review, null);
+        dialog.setContentView(sheetView);
+
+        // ── 绑定控件 ──
+        Slider sliderCount = sheetView.findViewById(R.id.slider_count);
+        TextView tvCountValue = sheetView.findViewById(R.id.tv_count_value);
+        ChipGroup chipGroupTags = sheetView.findViewById(R.id.chip_group_review_tags);
+        View btnConfirm = sheetView.findViewById(R.id.btn_review_confirm);
+
+        // ── 初始化每天回顾次数滑块 ──
+        int savedTimes = settings.getTimesPerDay(this);
+        sliderCount.setValue(savedTimes);
+        tvCountValue.setText(String.valueOf(savedTimes));
+
+        sliderCount.addOnChangeListener((slider, value, fromUser) -> {
+            tvCountValue.setText(String.valueOf((int) value));
+        });
+
+        // ── 异步加载标签列表 ──
+        executor.execute(() -> {
+            List<String> allTags = noteDao.getAllDistinctTags();
+            Set<String> savedTags = settings.getReviewTags(this);
+
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+
+                // 没有标签时隐藏标签区域
+                if (allTags.isEmpty()) {
+                    chipGroupTags.setVisibility(View.GONE);
+                    return;
+                }
+
+                // 动态生成标签 Chip
+                for (String tag : allTags) {
+                    Chip chip = new Chip(this);
+                    chip.setText("#" + tag);
+                    chip.setCheckable(true);
+                    chip.setCheckedIconVisible(true);
+                    chip.setChipBackgroundColorResource(R.color.chip_bg_state);
+                    chip.setChipCornerRadius(dp(20));
+                    chip.setMinHeight(dp(32));
+                    chip.setTextSize(12);
+                    // 恢复上次选中状态
+                    if (savedTags.contains(tag)) {
+                        chip.setChecked(true);
+                    }
+                    chipGroupTags.addView(chip);
+                }
+            });
+        });
+
+        // ── 确认按钮：保存设置 → 触发通知 ──
+        btnConfirm.setOnClickListener(v -> {
+            // 保存每天回顾次数
+            int times = (int) sliderCount.getValue();
+            settings.setTimesPerDay(this, times);
+
+            // 保存标签范围（无选中 = 回顾全部）
+            Set<String> selectedTags = new HashSet<>();
+            for (int i = 0; i < chipGroupTags.getChildCount(); i++) {
+                View child = chipGroupTags.getChildAt(i);
+                if (child instanceof Chip && ((Chip) child).isChecked()) {
+                    String chipText = ((Chip) child).getText().toString();
+                    selectedTags.add(chipText.startsWith("#")
+                            ? chipText.substring(1) : chipText);
+                }
+            }
+            settings.setReviewTags(this, selectedTags);
+
+            dialog.dismiss();
+
+            // 子线程触发通知
+            executor.execute(() -> NotificationHelper.showReviewNotification(this));
+        });
+
+        dialog.show();
+    }
+
+    private int dp(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     @SuppressWarnings("deprecation")
@@ -601,22 +689,6 @@ public class ArchiveActivity extends AppCompatActivity {
             }
             loadNotes();
         }
-    }
-
-    private void sendNotification() {
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
-            channel.setDescription("用于提醒用户整理未归档的灵感笔记");
-            manager.createNotificationChannel(channel);
-        }
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle("整理提醒")
-                .setContentText("你有未归档的灵感等待处理")
-                .setAutoCancel(true);
-        manager.notify(1, builder.build());
     }
 
     // ═══════════════════════════════════════
